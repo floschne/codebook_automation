@@ -1,4 +1,5 @@
+from .codebook import Codebook
 from .document import Document
-from .summary import Summary
+from .prediction_request import PredictionRequest
 
-__all__ = [Document, Summary]
+__all__ = [Document, Codebook, PredictionRequest]
