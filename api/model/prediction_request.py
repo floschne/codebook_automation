@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
-from api.model import Codebook, Document
+from .codebook import Codebook
+from .document import Document
 
 
 class PredictionRequest(BaseModel):
