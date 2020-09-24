@@ -12,4 +12,7 @@ uvicorn api.controller:api --reload
 
 
 ## How to run with docker
-docker-compose up
+
+```
+CBA_API_PORT=8081 docker-compose up -d
+```

@@ -16,7 +16,7 @@ services:
   api:
 #    depends_on:
 #      - "db"
-    image: 'uhhlt/codebook_automation:latest'
+    image: 'p0w3r/codebook_automation:latest'
     ports:
       - "${CBA_API_PORT}:8081"
     
