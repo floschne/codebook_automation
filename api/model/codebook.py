@@ -4,5 +4,5 @@ from pydantic import BaseModel
 
 
 class Codebook(BaseModel):
-    name: int = None
+    name: str = None
     tags: List[str] = None

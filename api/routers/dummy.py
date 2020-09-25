@@ -19,4 +19,4 @@ async def predict(req: PredictionRequest):
     return PredictionResult(doc_id=req.doc.doc_id,
                             proj_id=req.doc.proj_id,
                             codebook_name=req.codebook.name,
-                            predicted_tag=req.codebook.tags[0])
+                            predicted_tag=req.codebook.tags[-1])
