@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 
-from .codebook import Codebook
-from .document import Document
+from .codebook_model import CodebookModel
+from .document_model import DocumentModel
 
 
 class PredictionRequest(BaseModel):
-    doc: Document
-    codebook: Codebook
+    doc: DocumentModel
+    codebook: CodebookModel
