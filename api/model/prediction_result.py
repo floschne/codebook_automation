@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import BaseModel
 
 
@@ -6,3 +8,4 @@ class PredictionResult(BaseModel):
     proj_id: int
     codebook_name: str
     predicted_tag: str
+    probabilities: List[float]

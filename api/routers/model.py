@@ -1,13 +1,16 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Path
+from fastapi import APIRouter
 
+from backend.model_manager import ModelManager
 from logger import api_logger
-from ..model import CodebookModel, BooleanResponse, ModelMetadata
+from ..model import CodebookModel, BooleanResponse, StringResponse, ModelMetadata
 
 PREFIX = "/model"
 
 router = APIRouter()
+
+mm = ModelManager()
 
 
 class ModelNotFoundException(Exception):
@@ -16,18 +19,16 @@ class ModelNotFoundException(Exception):
         self.codebook_name = codebook_name
 
 
-@router.get("/is_available/{model_id}", response_model=BooleanResponse, tags=["model"])
-async def is_available(model_id: int = Path(..., title="The ID of the model to check", gt=0)):
-    api_logger.info(f"GET request on %s/is_available/%s" % (PREFIX, model_id))
-    # TODO get info from a DB or check in FS ?!
-    return BooleanResponse(False)
-
-
 @router.post("/is_available/", response_model=BooleanResponse, tags=["model"])
 async def is_available(cb: CodebookModel):
-    api_logger.info(f"POST request on %s/is_available/%s" % (PREFIX, cb.name))
-    # TODO get info from a DB or check in FS ?!
-    return BooleanResponse(False)
+    api_logger.info(f"POST request on %s/is_available for Codebook %s" % (PREFIX, cb.name))
+    return BooleanResponse(value=mm.model_is_available(cb=cb))
+
+
+@router.put("/init_model/", response_model=StringResponse, tags=["model"])
+async def init_model(cb: CodebookModel):
+    api_logger.info(f"POST request on %s/init_model for Codebook %s" % (PREFIX, cb.name))
+    return StringResponse(value=mm.init_model(cb=cb))
 
 
 @router.post("/get_metadata/", response_model=ModelMetadata, tags=["model"])

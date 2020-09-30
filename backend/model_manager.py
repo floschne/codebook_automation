@@ -1,11 +1,15 @@
 # this class will be responsible for loading models, fetching metadata, check availability
 # etc.
 import hashlib
+import json
 import os
 
 from api.model import CodebookModel
 from logger import backend_logger
-from main import config
+
+
+class ModelNotAvailableException(Exception):
+    pass
 
 
 class ModelManager(object):
@@ -14,6 +18,10 @@ class ModelManager(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
+
+            # load config file
+            config = json.load(open("config.json", "r"))
+
             backend_logger.info('Instantiating ModelManager!')
             cls._singleton = super(ModelManager, cls).__new__(cls)
 
@@ -37,8 +45,42 @@ class ModelManager(object):
         self.a = "a"
 
     def model_is_available(self, cb: CodebookModel) -> bool:
+        """
+        Checks if the model for the given codebook is available
+        :param cb: the codebook
+        :return: True if the model for the codebook is available and False otherwise
+        """
         model_id = self.compute_model_id(cb)
+        # TODO dont just check on the existence of the path but of the real model and if its possible to predict
         return os.path.exists(os.path.join(self._BASE_PATH, model_id))
+
+    def _model_is_available(self, m_id: str) -> bool:
+        """
+        Checks if the model with the given id is available
+        :param m_id: the id of the model
+        :return: True if the model with the id is available and False otherwise
+        """
+        # TODO dont just check on the existence of the path but of the real model and if its possible to predict
+        return os.path.exists(os.path.join(self._BASE_PATH, m_id))
+
+    def init_model(self, cb: CodebookModel) -> str:
+        """
+        Initializes a model for a given codebook
+        :param cb: the codebook
+        :return: the id of the model
+        """
+        # TODO implement logic to accomplish matching tags and labels
+        if not self.model_is_available(cb):
+            ModelManager._create_model_directory(cb)
+            assert self.model_is_available(cb)
+        return ModelManager.compute_model_id(cb)
+
+    def get_model_path(self, cb: CodebookModel) -> str:
+        if self.model_is_available(cb):
+            model_id = self.compute_model_id(cb)
+            return str(os.path.join(self._BASE_PATH, model_id))
+        else:
+            raise ModelNotAvailableException("Model for Codebook %s is not available!" % cb.name)
 
     @staticmethod
     def compute_model_id(cb: CodebookModel) -> str:
@@ -52,6 +94,11 @@ class ModelManager(object):
 
     @staticmethod
     def _create_model_directory(cb: CodebookModel) -> str:
+        """
+        Creates the model directory and returns the path as string
+        :param cb: the codebook the model directory gets created for
+        :return: the path of the model directory
+        """
         m_id = ModelManager.compute_model_id(cb)
         m_dir = os.path.join(ModelManager._BASE_PATH, m_id)
         os.makedirs(m_dir)
