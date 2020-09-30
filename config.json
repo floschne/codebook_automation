@@ -1,3 +1,4 @@
 {
-  "api_port": 8081
+  "api_port": 8081,
+  "model_base_path": "/tmp/codebook_automation/models/"
 }
