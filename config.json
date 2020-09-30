@@ -1,4 +1,8 @@
 {
-  "api_port": 8081,
-  "model_base_path": "/tmp/codebook_automation/models/"
+  "api": {
+    "api_port": 8081
+  },
+  "backend": {
+    "model_base_path_env_var": "MODEL_BASE_PATH"
+  }
 }

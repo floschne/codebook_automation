@@ -18,7 +18,8 @@ class ModelManager(object):
             cls._singleton = super(ModelManager, cls).__new__(cls)
 
             # read the model base path from config and 'validate' it
-            cls._BASE_PATH = config['model_base_path']
+            env_var = config['backend']['model_base_path_env_var']
+            cls._BASE_PATH = os.getenv(env_var, None)
             assert cls._BASE_PATH is not None and cls._BASE_PATH != ""
 
             # create the BASE_PATH if it doesn't exist

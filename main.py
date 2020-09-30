@@ -29,7 +29,7 @@ config = json.load(open("./config.json", "r"))
 
 if __name__ == "__main__":
     # read port from config
-    port = config['api_port']
+    port = config['api']['api_port']
     assert port is not None and isinstance(port, int), "The api_port has to be an integer! E.g. 8081"
 
     uvicorn.run(app, host="0.0.0.0", port=port)
