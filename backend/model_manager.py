@@ -9,7 +9,10 @@ from logger import backend_logger
 
 
 class ModelNotAvailableException(Exception):
-    pass
+    def __init__(self, model_id: int = None, cb: CodebookModel = None):
+        self.model_id = model_id,
+        self.codebook = cb
+        self.message = f"Model {model_id} for Codebook {cb.name} not available!"
 
 
 class ModelManager(object):
@@ -91,11 +94,12 @@ class ModelManager(object):
     @staticmethod
     def compute_model_id(cb: CodebookModel) -> str:
         """
-        Computes the model id for the given Codebook by MD5-hashing it's JSON representation.
+        Computes the model id for the given Codebook by MD5-hashing it's JSON representation (after sorting the tags).
         Note that this is just an identifier and does not ensure that the model exists.
         :param cb: The codebook model!
         :return: The model ID as a string
         """
+        cb.tags.sort()
         return hashlib.md5(cb.json().encode('utf-8')).hexdigest()
 
     @staticmethod

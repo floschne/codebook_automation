@@ -45,8 +45,6 @@ class Predictor(object):
         return cls._singleton
 
     def _load_estimator(self, cb: CodebookModel):
-        assert self._mm.model_is_available(cb)
-
         estimator_path = self._mm.get_model_path(cb)
         estimator = tf.saved_model.load(estimator_path)
         if estimator.signatures["predict"] is None:
@@ -75,9 +73,6 @@ class Predictor(object):
 
     @staticmethod
     def _build_prediction_result(req: PredictionRequest, pred) -> PredictionResult:
-        cb = req.codebook
-        doc = req.doc
-        mapping = req.mapping
 
         # parse the prediction
         pred_label = pred['classes'].numpy()[0, 0].decode("utf-8")
@@ -92,6 +87,9 @@ class Predictor(object):
         probs = pred['probabilities'].numpy()[0].tolist()
 
         # apply mapping
+        cb = req.codebook
+        doc = req.doc
+        mapping = req.mapping
         probabilities, pred_tag = Predictor._apply_mapping(pred_label, classes, probs, mapping)
 
         return PredictionResult(
@@ -107,17 +105,21 @@ class Predictor(object):
             -> Tuple[Dict[str, float], str]:
 
         assert len(probs) == len(classes)
-        tag_label_map = tag_label_map.map
-        assert len(tag_label_map.keys()) == len(classes)
-        label_tag_map = {v: k for k, v in tag_label_map.items()}
+        not_mapped = dict(zip(classes, probs))
 
-        # map the predicted label to tag
-        pred_tag = label_tag_map[pred_label]
+        if tag_label_map is not None:
+            tag_label_map = tag_label_map.map
+            assert len(tag_label_map.keys()) == len(classes)
+            label_tag_map = {v: k for k, v in tag_label_map.items()}
 
-        # map the other tags
-        no_mapping = dict(zip(classes, probs))
-        probabilities = dict()
-        for m in tag_label_map:
-            probabilities[m] = no_mapping[tag_label_map[m]]
+            # map the predicted label to tag
+            pred_tag = label_tag_map[pred_label]
 
-        return probabilities, pred_tag
+            # map the other tags
+            mapped = dict()
+            for m in tag_label_map:
+                mapped[m] = not_mapped[tag_label_map[m]]
+
+            return mapped, pred_tag
+        else:
+            return not_mapped, pred_label

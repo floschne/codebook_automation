@@ -8,4 +8,4 @@ from .tag_label_mapping import TagLabelMapping
 class PredictionRequest(BaseModel):
     doc: DocumentModel
     codebook: CodebookModel
-    mapping: TagLabelMapping
+    mapping: TagLabelMapping = None

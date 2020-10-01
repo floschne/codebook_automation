@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.predictor import Predictor
+from backend import Predictor
 from logger import api_logger
 from ..model import PredictionRequest
 from ..model import PredictionResult
