@@ -1,8 +1,10 @@
 import json
+import os
+from typing import Dict, List, Tuple
 
 import tensorflow as tf
 
-from api.model import CodebookModel, DocumentModel, PredictionResult
+from api.model import CodebookModel, DocumentModel, PredictionResult, PredictionRequest, TagLabelMapping
 from logger import backend_logger
 from .model_manager import ModelManager
 
@@ -18,6 +20,8 @@ class ErroneousModelException(Exception):
 #  - make this an own process to free GPU Memory https://github.com/tensorflow/tensorflow/issues/19731
 #  - documentation
 #  - testing
+
+
 class Predictor(object):
     _singleton = None
     _mm: ModelManager = None
@@ -26,6 +30,13 @@ class Predictor(object):
         if cls._singleton is None:
             # load config file
             config = json.load(open("config.json", "r"))
+
+            # disable GPU for prediction if the configured this way.
+            if not bool(config['backend']['use_gpu_for_prediction']):
+                backend_logger.info("GPU support for prediction disabled!")
+                os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+            else:
+                backend_logger.info("GPU support for prediction enabled!")
 
             backend_logger.info('Instantiating Predictor!')
             cls._singleton = super(Predictor, cls).__new__(cls)
@@ -43,7 +54,10 @@ class Predictor(object):
 
         return estimator
 
-    def predict(self, doc: DocumentModel, cb: CodebookModel) -> PredictionResult:
+    def predict(self, req: PredictionRequest) -> PredictionResult:
+        cb = req.codebook
+        doc = req.doc
+
         # load the estimator # TODO multi proc to free resources after loading
         estimator = self._load_estimator(cb)
         # build the sample(s) for the doc # TODO split doc
@@ -51,20 +65,59 @@ class Predictor(object):
         # get predictions # TODO choose pred merge strategy
         pred = estimator.signatures["predict"](examples=samples)
 
-        # TODO create a helper to extract infos and create PredictionResult
-        pred_tag = pred['classes'].numpy()[0, 0].decode("utf-8")
-        probs = pred['probabilities'].numpy()[0].tolist()
-
-        return PredictionResult(
-            doc_id=doc.doc_id,
-            proj_id=doc.proj_id,
-            codebook_name=cb.name,
-            predicted_tag=pred_tag,
-            probabilities=probs
-        )
+        return self._build_prediction_result(req, pred)
 
     @staticmethod
     def _build_tf_sample(doc: DocumentModel):
         ex = tf.train.Example()
         ex.features.feature['text'].bytes_list.value.extend([bytes(doc.text, encoding='utf-8')])
         return tf.constant(ex.SerializeToString())
+
+    @staticmethod
+    def _build_prediction_result(req: PredictionRequest, pred) -> PredictionResult:
+        cb = req.codebook
+        doc = req.doc
+        mapping = req.mapping
+
+        # parse the prediction
+        pred_label = pred['classes'].numpy()[0, 0].decode("utf-8")
+
+        classes = list()
+        for c in pred['all_classes'].numpy()[0]:
+            if pred['all_classes'].dtype == tf.string:
+                classes.append(c.decode("utf-8"))
+            else:
+                classes.append(c)
+
+        probs = pred['probabilities'].numpy()[0].tolist()
+
+        # apply mapping
+        probabilities, pred_tag = Predictor._apply_mapping(pred_label, classes, probs, mapping)
+
+        return PredictionResult(
+            doc_id=doc.doc_id,
+            proj_id=doc.proj_id,
+            codebook_name=cb.name,
+            predicted_tag=pred_tag,
+            probabilities=probabilities
+        )
+
+    @staticmethod
+    def _apply_mapping(pred_label: str, classes: List[str], probs: List[float], tag_label_map: TagLabelMapping) \
+            -> Tuple[Dict[str, float], str]:
+
+        assert len(probs) == len(classes)
+        tag_label_map = tag_label_map.map
+        assert len(tag_label_map.keys()) == len(classes)
+        label_tag_map = {v: k for k, v in tag_label_map.items()}
+
+        # map the predicted label to tag
+        pred_tag = label_tag_map[pred_label]
+
+        # map the other tags
+        no_mapping = dict(zip(classes, probs))
+        probabilities = dict()
+        for m in tag_label_map:
+            probabilities[m] = no_mapping[tag_label_map[m]]
+
+        return probabilities, pred_tag

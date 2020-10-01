@@ -27,7 +27,7 @@ class ModelManager(object):
 
             # read the model base path from config and 'validate' it
             env_var = config['backend']['model_base_path_env_var']
-            cls._BASE_PATH = os.getenv(env_var, None)
+            cls._BASE_PATH = os.getenv(env_var, None).strip()
             assert cls._BASE_PATH is not None and cls._BASE_PATH != ""
 
             # create the BASE_PATH if it doesn't exist
@@ -76,6 +76,12 @@ class ModelManager(object):
         return ModelManager.compute_model_id(cb)
 
     def get_model_path(self, cb: CodebookModel) -> str:
+        """
+        Returns the path of the model of the given Codebook
+        :param cb: the codebook
+        :return: path to the model of the codebook
+        :raises: ModelNotAvailableException if the model is not available
+        """
         if self.model_is_available(cb):
             model_id = self.compute_model_id(cb)
             return str(os.path.join(self._BASE_PATH, model_id))

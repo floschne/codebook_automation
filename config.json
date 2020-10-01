@@ -3,6 +3,7 @@
     "api_port": 8081
   },
   "backend": {
-    "model_base_path_env_var": "MODEL_BASE_PATH"
+    "model_base_path_env_var": "MODEL_BASE_PATH",
+    "use_gpu_for_prediction": 0
   }
 }

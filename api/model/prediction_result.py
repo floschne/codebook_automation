@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict
 
 from pydantic import BaseModel
 
@@ -8,4 +8,4 @@ class PredictionResult(BaseModel):
     proj_id: int
     codebook_name: str
     predicted_tag: str
-    probabilities: List[float]
+    probabilities: Dict[str, float]

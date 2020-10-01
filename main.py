@@ -9,6 +9,13 @@ from api.routers import dummy, model, prediction
 # create the main app
 app = FastAPI()
 
+
+@app.on_event("startup")
+async def startup_event():
+    # TODO apply app specific configs here
+    pass
+
+
 # include the routers
 app.include_router(dummy.router)
 app.include_router(model.router, prefix=model.PREFIX)
@@ -24,12 +31,14 @@ async def model_not_found_exception_handler(request: Request, exc: model.ModelNo
     )
 
 
-# load config file
-config = json.load(open("./config.json", "r"))
-
 if __name__ == "__main__":
+    # load config file
+    config = json.load(open("./config.json", "r"))
+
     # read port from config
     port = config['api']['api_port']
     assert port is not None and isinstance(port, int), "The api_port has to be an integer! E.g. 8081"
+
+    print("hello main")
 
     uvicorn.run(app, host="0.0.0.0", port=port)
