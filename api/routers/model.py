@@ -1,8 +1,6 @@
-from datetime import datetime
-
 from fastapi import APIRouter
 
-from backend import ModelManager, ModelNotAvailableException
+from backend import ModelManager
 from logger import api_logger
 from ..model import CodebookModel, BooleanResponse, StringResponse, ModelMetadata
 
@@ -34,15 +32,4 @@ async def init_model(cb: CodebookModel):
 @router.post("/get_metadata/", response_model=ModelMetadata, tags=["model"])
 async def get_metadata(cb: CodebookModel):
     api_logger.info(f"POST request on %s/get_metadata/%s" % (PREFIX, cb.name))
-    # TODO get info from a DB or check in FS ?!
-
-    model_exists = False
-    if not model_exists:
-        raise ModelNotAvailableException(codebook_name=cb.name, model_id=None)
-
-    return ModelMetadata(model_id=1337,
-                         codebook_name=cb.name,
-                         labels=["l1", "l2", "l3"],
-                         size_mb=500,
-                         trained_with_samples=42,
-                         last_update=datetime.now())
+    return mm.load_model_metadata(cb)

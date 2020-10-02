@@ -4,13 +4,9 @@ from typing import Dict, List, Tuple
 
 import tensorflow as tf
 
-from api.model import CodebookModel, DocumentModel, PredictionResult, PredictionRequest, TagLabelMapping
+from api.model import DocumentModel, PredictionResult, PredictionRequest, TagLabelMapping
 from logger import backend_logger
 from .model_manager import ModelManager
-
-
-class ErroneousModelException(Exception):
-    pass
 
 
 # TODO
@@ -44,20 +40,12 @@ class Predictor(object):
 
         return cls._singleton
 
-    def _load_estimator(self, cb: CodebookModel):
-        estimator_path = self._mm.get_model_path(cb)
-        estimator = tf.saved_model.load(estimator_path)
-        if estimator.signatures["predict"] is None:
-            raise ErroneousModelException("Estimator / Model for Codebook %s is erroneous!" % cb.name)
-
-        return estimator
-
     def predict(self, req: PredictionRequest) -> PredictionResult:
         cb = req.codebook
         doc = req.doc
 
         # load the estimator # TODO multi proc to free resources after loading
-        estimator = self._load_estimator(cb)
+        estimator = self._mm.load_estimator(cb)
         # build the sample(s) for the doc # TODO split doc
         samples = self._build_tf_sample(doc)
         # get predictions # TODO choose pred merge strategy

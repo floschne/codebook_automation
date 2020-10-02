@@ -4,15 +4,30 @@ import hashlib
 import json
 import os
 
-from api.model import CodebookModel
+import tensorflow as tf
+
+from api.model import CodebookModel, ModelMetadata
 from logger import backend_logger
 
 
+class ErroneousModelException(Exception):
+    def __init__(self, model_id: str = None, cb: CodebookModel = None):
+        self.model_id = model_id,
+        self.codebook = cb
+        self.message = f"Model {model_id} for Codebook {cb.name} is erroneous!"
+
+
 class ModelNotAvailableException(Exception):
-    def __init__(self, model_id: int = None, cb: CodebookModel = None):
+    def __init__(self, model_id: str = None, cb: CodebookModel = None):
         self.model_id = model_id,
         self.codebook = cb
         self.message = f"Model {model_id} for Codebook {cb.name} not available!"
+
+
+class ModelMetadataNotAvailableException(Exception):
+    def __init__(self, model_id: str = None):
+        self.model_id = model_id
+        self.message = f"Model Metadata for Model {model_id} not available!"
 
 
 class ModelManager(object):
@@ -53,9 +68,7 @@ class ModelManager(object):
         :param cb: the codebook
         :return: True if the model for the codebook is available and False otherwise
         """
-        model_id = self.compute_model_id(cb)
-        # TODO dont just check on the existence of the path but of the real model and if its possible to predict
-        return os.path.exists(os.path.join(self._BASE_PATH, model_id))
+        return self._model_is_available(m_id=self.compute_model_id(cb))
 
     def _model_is_available(self, m_id: str) -> bool:
         """
@@ -63,8 +76,7 @@ class ModelManager(object):
         :param m_id: the id of the model
         :return: True if the model with the id is available and False otherwise
         """
-        # TODO dont just check on the existence of the path but of the real model and if its possible to predict
-        return os.path.exists(os.path.join(self._BASE_PATH, m_id))
+        return tf.saved_model.contains_saved_model(os.path.join(self._BASE_PATH, m_id))
 
     def init_model(self, cb: CodebookModel) -> str:
         """
@@ -85,11 +97,34 @@ class ModelManager(object):
         :return: path to the model of the codebook
         :raises: ModelNotAvailableException if the model is not available
         """
+        model_id = self.compute_model_id(cb)
         if self.model_is_available(cb):
-            model_id = self.compute_model_id(cb)
             return str(os.path.join(self._BASE_PATH, model_id))
         else:
-            raise ModelNotAvailableException("Model for Codebook %s is not available!" % cb.name)
+            raise ModelNotAvailableException(model_id, cb)
+
+    def load_estimator(self, cb: CodebookModel):
+        """
+        Loads the Tensorflow Estimator model for the given Codebook
+        :param cb: the codebook
+        :return: the Tensorflow Estimator model for the given Codebook
+        """
+        # TODO multi proc to free resources after loading
+        estimator_path = self.get_model_path(cb)
+        estimator = tf.saved_model.load(estimator_path)
+        if estimator.signatures["predict"] is None:
+            raise ErroneousModelException("Estimator / Model for Codebook %s is erroneous!" % cb.name)
+
+        return estimator
+
+    def load_model_metadata(self, cb: CodebookModel) -> ModelMetadata:
+        meta_data_path = os.path.join(self.get_model_path(cb), "assets.extra", "model_metadata.json")
+        try:
+            with open(meta_data_path, 'r') as json_file:
+                data = json.load(json_file)
+                return ModelMetadata(**data)
+        except Exception:
+            raise ModelMetadataNotAvailableException(model_id=self.compute_model_id(cb))
 
     @staticmethod
     def compute_model_id(cb: CodebookModel) -> str:
