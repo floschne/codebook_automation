@@ -1,5 +1,3 @@
-# this class will be responsible for loading models, fetching metadata, check availability
-# etc.
 import hashlib
 import json
 import os
@@ -7,27 +5,8 @@ import os
 import tensorflow as tf
 
 from api.model import CodebookModel, ModelMetadata
+from backend import ModelNotAvailableException, ErroneousModelException, ModelMetadataNotAvailableException
 from logger import backend_logger
-
-
-class ErroneousModelException(Exception):
-    def __init__(self, model_id: str = None, cb: CodebookModel = None):
-        self.model_id = model_id,
-        self.codebook = cb
-        self.message = f"Model <{model_id}> for Codebook <{cb.name}> is erroneous!"
-
-
-class ModelNotAvailableException(Exception):
-    def __init__(self, model_id: str = None, cb: CodebookModel = None):
-        self.model_id = model_id,
-        self.codebook = cb
-        self.message = f"Model <{model_id}> for Codebook <{cb.name}> not available!"
-
-
-class ModelMetadataNotAvailableException(Exception):
-    def __init__(self, model_id: str = None):
-        self.model_id = model_id
-        self.message = f"Model Metadata for Model <{model_id}> not available!"
 
 
 class ModelManager(object):

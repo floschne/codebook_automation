@@ -5,7 +5,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from api.routers import general, model, prediction
-from backend import ModelNotAvailableException
+from backend import ModelNotAvailableException, ErroneousMappingException, ErroneousModelException, \
+    ModelMetadataNotAvailableException
 from logger import backend_logger
 
 # create the main app
@@ -26,10 +27,37 @@ app.include_router(prediction.router, prefix=prediction.PREFIX)
 
 # custom exception handlers
 @app.exception_handler(ModelNotAvailableException)
-async def model_not_found_exception_handler(request: Request, exc: ModelNotAvailableException):
+async def model_not_available_exception_handler(request: Request, exc: ModelNotAvailableException):
     backend_logger.warn(exc.message)
     return JSONResponse(
         status_code=404,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(ErroneousMappingException)
+async def erroneous_mapping_exception_handler(request: Request, exc: ErroneousMappingException):
+    backend_logger.warn(exc.message)
+    return JSONResponse(
+        status_code=400,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(ErroneousModelException)
+async def erroneous_model_exception_handler(request: Request, exc: ErroneousModelException):
+    backend_logger.warn(exc.message)
+    return JSONResponse(
+        status_code=500,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(ModelMetadataNotAvailableException)
+async def model_metadata_not_available_exception_handler(request: Request, exc: ErroneousModelException):
+    backend_logger.warn(exc.message)
+    return JSONResponse(
+        status_code=500,
         content={"message": exc.message}
     )
 

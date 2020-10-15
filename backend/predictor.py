@@ -4,8 +4,9 @@ from typing import Dict, List, Tuple
 
 import tensorflow as tf
 
-from api.model import DocumentModel, PredictionResult, PredictionRequest, TagLabelMapping
+from api.model import DocumentModel, PredictionResult, PredictionRequest, TagLabelMapping, CodebookModel
 from logger import backend_logger
+from . import ErroneousModelException, ErroneousMappingException
 from .model_manager import ModelManager
 
 
@@ -74,11 +75,15 @@ class Predictor(object):
 
         probs = pred['probabilities'].numpy()[0].tolist()
 
-        # apply mapping
         cb = req.codebook
+        mid = ModelManager.compute_model_id(cb)
+        if not len(probs) == len(classes):
+            raise ErroneousModelException(mid, cb)
+
+        # apply mapping
         doc = req.doc
         mapping = req.mapping
-        probabilities, pred_tag = Predictor._apply_mapping(pred_label, classes, probs, mapping)
+        probabilities, pred_tag = Predictor._apply_mapping(pred_label, classes, probs, mapping, cb)
 
         return PredictionResult(
             doc_id=doc.doc_id,
@@ -89,15 +94,39 @@ class Predictor(object):
         )
 
     @staticmethod
-    def _apply_mapping(pred_label: str, classes: List[str], probs: List[float], tag_label_map: TagLabelMapping) \
+    def _verify_mapping(classes: List[str], tag_label_map: TagLabelMapping, cb: CodebookModel):
+
+        correct = True
+
+        tag_label_map = tag_label_map.map
+        if tag_label_map is None:
+            correct = False
+
+        tags = tag_label_map.keys()
+        if len(tags) != len(classes):
+            correct = False
+        for tag, label in tag_label_map.items():
+            if tag not in cb.tags or label not in classes:
+                correct = False
+
+        if not correct:
+            raise ErroneousMappingException(cb)
+
+    @staticmethod
+    def _apply_mapping(pred_label: str,
+                       classes: List[str],
+                       probs: List[float],
+                       tag_label_map: TagLabelMapping,
+                       cb: CodebookModel) \
             -> Tuple[Dict[str, float], str]:
 
-        assert len(probs) == len(classes)
         not_mapped = dict(zip(classes, probs))
 
         if tag_label_map is not None:
+            Predictor._verify_mapping(classes, tag_label_map, cb)
+
             tag_label_map = tag_label_map.map
-            assert len(tag_label_map.keys()) == len(classes)
+
             label_tag_map = {v: k for k, v in tag_label_map.items()}
 
             # map the predicted label to tag

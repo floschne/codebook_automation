@@ -1,5 +1,11 @@
-from .model_manager import ModelManager, ModelNotAvailableException, ErroneousModelException
+from .exceptions import ErroneousModelException, ErroneousMappingException, ModelMetadataNotAvailableException, \
+    ModelNotAvailableException
+from .model_manager import ModelManager
 from .predictor import Predictor
 
-__all__ = [ModelManager, ModelNotAvailableException,
-           Predictor, ErroneousModelException]
+__all__ = [ModelManager,
+           Predictor,
+           ModelNotAvailableException,
+           ErroneousModelException,
+           ErroneousMappingException,
+           ModelMetadataNotAvailableException]
