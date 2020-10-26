@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 from api.model import CodebookModel
@@ -43,16 +41,3 @@ def test_compute_model_id(mm: ModelManager):
     cb1_id_2 = mm.compute_model_id(cb1)
     # shuffling the tags must not change the id!
     assert cb1_id_2 == cb1_id
-
-
-def test_model_is_available(mm: ModelManager):
-    cb1 = create_dummy_codebook_models(1)
-    assert not mm.model_is_available(cb1)
-
-    # create the model directory!
-    m_path = mm._create_model_directory(cb1)
-    assert mm.model_is_available(cb1)
-
-    # delete it again
-    os.rmdir(m_path)
-    assert not mm.model_is_available(cb1)
