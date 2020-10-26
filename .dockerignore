@@ -1,0 +1,8 @@
+models
+sample_txt
+.idea
+.git
+.pytest_cache
+__pycache__
+.travis.yml
+.gitignore
