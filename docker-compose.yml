@@ -1,22 +1,11 @@
-##
-# Example run:
-#  CBA_API_PORT=8081 docker-compose up --build -d
-#
-##
 version: '3'
 
 services:
-#  db:
-#    image: 'bitnami/redis:latest'
-#    environment:
-#      - ALLOW_EMPTY_PASSWORD=yes
-#    volumes:
-#      - ${PWD}/redis_data:/bitnami/redis/data
-
   api:
-#    depends_on:
-#      - "db"
     image: 'p0w3r/codebook_automation:latest'
+    volumes:
+      - ./models:/models
+    environment:
+      - MODEL_BASE_PATH=/models
     ports:
-      - "${CBA_API_PORT}:8081"
-    
+      - "${CBA_API_PORT}:80"
