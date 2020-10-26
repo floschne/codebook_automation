@@ -1,20 +1,20 @@
 import json
 import os
-from typing import Dict, List, Tuple
+from multiprocessing import Process, Queue
+from typing import Dict, List, Tuple, Union
 
 import tensorflow as tf
 
-from api.model import DocumentModel, PredictionResult, PredictionRequest, TagLabelMapping, CodebookModel
+from api.model import DocumentModel, PredictionResult, MultiDocumentPredictionResult, PredictionRequest, \
+    MultiDocumentPredictionRequest, TagLabelMapping, CodebookModel
 from logger import backend_logger
-from . import ErroneousModelException, ErroneousMappingException
+from .exceptions import ErroneousModelException, ErroneousMappingException, PredictionError
 from .model_manager import ModelManager
 
 
 # TODO
 #  - split up document text into chunks of MAX_SEQ_LEN (200?!)
 #  - Let user select merging strategy of result (i.e. mean, max, min... over all predictions)
-#  - check if GPU is available
-#  - make this an own process to free GPU Memory https://github.com/tensorflow/tensorflow/issues/19731
 #  - documentation
 #  - testing
 
@@ -41,18 +41,78 @@ class Predictor(object):
 
         return cls._singleton
 
-    def predict(self, req: PredictionRequest) -> PredictionResult:
-        cb = req.codebook
-        doc = req.doc
+    def predict(self, req: Union[PredictionRequest, MultiDocumentPredictionRequest]) -> \
+            Union[PredictionResult, MultiDocumentPredictionResult]:
 
-        # load the estimator # TODO multi proc to free resources after loading
-        estimator = self._mm.load_estimator(cb)
-        # build the sample(s) for the doc # TODO split doc
-        samples = self._build_tf_sample(doc)
-        # get predictions # TODO choose pred merge strategy
-        pred = estimator.signatures["predict"](examples=samples)
+        def p_single(r: PredictionRequest, q: Queue):
+            try:
+                cb = r.codebook
+                doc = r.doc
 
-        return self._build_prediction_result(req, pred)
+                # load the estimator
+                estimator = self._mm.load_estimator(cb)
+                # build the sample(s) for the doc
+                samples = self._build_tf_sample(doc)
+                # get predictions
+                prediction = estimator.signatures["predict"](examples=samples)
+                # build result and add to queue
+                q.put(self._build_prediction_result(r, prediction))
+            except Exception as e:
+                # if any error occurs, return
+                backend_logger.error("Error occurred within prediction process with PID " + str(os.getpid()) + "!")
+                backend_logger.error(type(e))
+                if hasattr(e, 'message'):
+                    backend_logger.error(e.message)
+                return
+
+        def p_multi(r: MultiDocumentPredictionRequest, q: Queue):
+            try:
+                cb = r.codebook
+                docs = r.docs
+
+                # load the estimator
+                estimator = self._mm.load_estimator(cb)
+                # build the sample(s) for the doc
+                samples = [self._build_tf_sample(doc) for doc in docs]
+                # get predictions
+                predictions = [estimator.signatures["predict"](examples=sample) for sample in samples]
+                # build result and add to queue
+                q.put(self._build_multi_prediction_result(r, predictions))
+            except Exception as e:
+                # if any error occurs, return
+                backend_logger.error("Error occurred within prediction process with PID " + str(os.getpid()) + "!")
+                backend_logger.error(type(e))
+                if hasattr(e, 'message'):
+                    backend_logger.error(e.message)
+                return
+
+        queue = Queue()
+
+        if isinstance(req, PredictionRequest):
+            backend_logger.info("Spawning new single document prediction process.")
+            proc = Process(target=p_single, args=(req, queue,))
+        elif isinstance(req, MultiDocumentPredictionRequest):
+            backend_logger.info("Spawning new multi document prediction process.")
+            proc = Process(target=p_multi, args=(req, queue,))
+
+        proc.start()
+        backend_logger.info("Started prediction process with PID " + str(proc.pid) + ".")
+
+        backend_logger.info("Waiting for prediction process with PID " + str(proc.pid) + " ...")
+        proc.join()
+
+        if not queue.empty():
+            backend_logger.info("Prediction process with PID " + str(proc.pid) + " finished successfully!")
+            res = queue.get()
+            queue.close()
+            return res
+        else:
+            if proc.is_alive():
+                proc.kill()
+            queue.close()
+            backend_logger.error(
+                "Prediction process with PID " + str(proc.pid) + " finished erroneously! Process terminated!")
+            raise PredictionError()
 
     @staticmethod
     def _build_tf_sample(doc: DocumentModel):
@@ -63,7 +123,6 @@ class Predictor(object):
     @staticmethod
     def _build_prediction_result(req: PredictionRequest, pred) -> PredictionResult:
 
-        # parse the prediction
         pred_label = pred['classes'].numpy()[0, 0].decode("utf-8")
 
         classes = list()
@@ -90,6 +149,42 @@ class Predictor(object):
             proj_id=doc.proj_id,
             codebook_name=cb.name,
             predicted_tag=pred_tag,
+            probabilities=probabilities
+        )
+
+    @staticmethod
+    def _build_multi_prediction_result(req: MultiDocumentPredictionRequest,
+                                       preds: List) -> MultiDocumentPredictionResult:
+
+        pred_labels = [p['classes'].numpy()[0, 0].decode("utf-8") for p in preds]
+
+        classes = list()
+        for c in preds[0]['all_classes'].numpy()[0]:
+            if preds[0]['all_classes'].dtype == tf.string:
+                classes.append(c.decode("utf-8"))
+            else:
+                classes.append(c)
+
+        probs_list = [p['probabilities'].numpy()[0].tolist() for p in preds]
+
+        cb = req.codebook
+        mid = ModelManager.compute_model_id(cb)
+        if not len(probs_list[0]) == len(classes):
+            raise ErroneousModelException(mid, cb)
+
+        # apply mapping
+        mapping = req.mapping
+        probabilities, pred_tags = dict(), dict()
+        for pred_label, probs, doc in zip(pred_labels, probs_list, req.docs):
+            mapped_probs, pred_tag = Predictor._apply_mapping(pred_label, classes, probs, mapping, cb)
+
+            probabilities[doc.doc_id] = mapped_probs
+            pred_tags[doc.doc_id] = pred_tag
+
+        return MultiDocumentPredictionResult(
+            proj_id=req.docs[0].proj_id,
+            codebook_name=cb.name,
+            predicted_tags=pred_tags,
             probabilities=probabilities
         )
 
