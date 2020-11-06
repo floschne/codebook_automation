@@ -1,5 +1,6 @@
 sample_txt
 data
+notebooks
 .idea
 .git
 .pytest_cache
