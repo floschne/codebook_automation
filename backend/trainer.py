@@ -36,18 +36,20 @@ class Trainer(object):
 
     def store_uploaded_dataset(self, cb: CodebookModel, dataset_version: str, dataset_archive: UploadFile) -> Path:
         # TODO
-        # - make sure the file is an archive
-        # - extract archive
-        # - make sure that a valid CSV model was extracted
+        # - make sure that a valid CSV dataset was extracted -> dataset_is_available
         backend_logger.info(f"Successfully received dataset archive for Codebook {cb.name}")
 
-        path = self._dh.store_dataset(cb=cb, dataset_archive=dataset_archive, dataset_version=dataset_version)
-
+        try:
+            path = self._dh.store_dataset(cb=cb, dataset_archive=dataset_archive, dataset_version=dataset_version)
+        except Exception as e:
+            raise ErroneousDatasetException(dataset_version, cb,
+                                            f"Error while persisting dataset for Codebook {cb.name}!",
+                                            caused_by=str(e))
         if not self.dataset_is_available(cb, dataset_version=dataset_version):
             raise ErroneousDatasetException(dataset_version, cb,
                                             f"Error while persisting dataset for Codebook {cb.name} under {str(path)}")
         backend_logger.info(
-            f"Successfully persisted dataset <{dataset_version}> for Codebook <{cb.name}> under {str(path)}")
+            f"Successfully persisted dataset '{dataset_version}' for Codebook <{cb.name}> under {str(path)}")
         return path
 
     @staticmethod

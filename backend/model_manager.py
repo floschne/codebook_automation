@@ -1,5 +1,4 @@
 import json
-import shutil
 
 import tensorflow as tf
 from fastapi import UploadFile
@@ -66,21 +65,17 @@ class ModelManager(object):
 
     def store_uploaded_model(self, cb: CodebookModel, model_version: str, model_archive: UploadFile) -> str:
         # TODO
-        # - make sure the file is an archive
-        # - extract archive
         # - make sure that a valid TF model was extracted
         # - create metadata for model or make sure it exists in the archive
         backend_logger.info(f"Successfully received model archive for Codebook {cb.name}")
         try:
-            model_dir = self._dh.get_model_directory(cb, model_version=model_version, create=True)
-            dst = model_dir.joinpath(model_archive.filename)
-            with open(dst, "wb") as buffer:
-                shutil.copyfileobj(model_archive.file, buffer)
-                if not self.model_is_available(cb):
-                    raise ErroneousModelException(model_version, cb,
-                                                  f"Error while persisting model for Codebook {cb.name} under {dst}")
-                backend_logger.info(
-                    f"Successfully persisted model '{model_version}' for Codebook <{cb.name}> under {dst}")
-                return str(dst)
-        finally:
-            model_archive.file.close()
+            path = self._dh.store_model(cb, model_archive, model_version)
+        except Exception as e:
+            raise ErroneousModelException(model_version, cb,
+                                          f"Error while persisting model for Codebook {cb.name}!")
+        if not self.model_is_available(cb):
+            raise ErroneousModelException(model_version, cb,
+                                          f"Error while persisting model for Codebook {cb.name} under {path}!")
+        backend_logger.info(
+            f"Successfully persisted model '{model_version}' for Codebook <{cb.name}> under {path}!")
+        return str(path)

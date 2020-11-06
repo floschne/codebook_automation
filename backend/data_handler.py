@@ -2,7 +2,9 @@ import hashlib
 import json
 import os
 import shutil
+import zipfile
 from pathlib import Path
+from zipfile import ZipFile
 
 from fastapi import UploadFile
 
@@ -49,7 +51,8 @@ class DataHandler(object):
     @staticmethod
     def get_model_directory(cb: CodebookModel, model_version: str = "default", create: bool = False) -> Path:
         model_version = "default" if model_version is None or model_version == "" else model_version
-        model_dir = DataHandler._get_data_directory(cb).joinpath(DataHandler._relative_model_directory).joinpath(
+        model_dir = DataHandler._get_data_directory(cb, create).joinpath(
+            DataHandler._relative_model_directory).joinpath(
             model_version)
         if create:
             model_dir.mkdir(exist_ok=True)
@@ -61,9 +64,8 @@ class DataHandler(object):
         try:
             ds_dir = DataHandler.get_dataset_directory(cb, dataset_version=dataset_version, create=True)
             dst = ds_dir.joinpath(dataset_archive.filename)
-            with open(dst, "wb") as buffer:
-                shutil.copyfileobj(dataset_archive.file, buffer)
-                return Path(dst)
+            archive_path = DataHandler._store_uploaded_file(dataset_archive, dst)
+            return DataHandler._extract_archive(archive=archive_path, dst=ds_dir)
         finally:
             dataset_archive.file.close()
 
@@ -72,15 +74,15 @@ class DataHandler(object):
         try:
             ds_dir = DataHandler.get_model_directory(cb, model_version=model_version, create=True)
             dst = ds_dir.joinpath(model_archive.filename)
-            with open(dst, "wb") as buffer:
-                shutil.copyfileobj(model_archive.file, buffer)
-                return Path(dst)
+            archive_path = DataHandler._store_uploaded_file(model_archive, dst)
+            return DataHandler._extract_archive(archive=archive_path, dst=ds_dir)
         finally:
             model_archive.file.close()
 
     @staticmethod
     def get_dataset_directory(cb: CodebookModel, dataset_version: str = "default", create: bool = False) -> Path:
-        dataset_dir = DataHandler._get_data_directory(cb).joinpath(DataHandler._relative_dataset_directory).joinpath(
+        dataset_dir = DataHandler._get_data_directory(cb, create).joinpath(
+            DataHandler._relative_dataset_directory).joinpath(
             dataset_version)
         if create:
             os.makedirs(dataset_dir, exist_ok=True)
@@ -95,3 +97,17 @@ class DataHandler(object):
             data_directory.mkdir(exist_ok=True)
         assert data_directory.is_dir()
         return data_directory
+
+    @staticmethod
+    def _extract_archive(archive: Path, dst: Path):
+        assert zipfile.is_zipfile(archive)
+        with ZipFile(archive, 'r') as zip_archive:
+            zip_archive.extractall(dst)
+        assert dst.is_dir()
+        return dst
+
+    @staticmethod
+    def _store_uploaded_file(uploaded_file: UploadFile, dst: Path):
+        with open(dst, "wb") as buffer:
+            shutil.copyfileobj(uploaded_file.file, buffer)
+            return Path(dst)

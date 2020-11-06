@@ -11,8 +11,9 @@ class ErroneousModelException(Exception):
 
 
 class ErroneousDatasetException(Exception):
-    def __init__(self, dataset_version: str = None, cb: CodebookModel = None, msg: str = None):
+    def __init__(self, dataset_version: str = None, cb: CodebookModel = None, msg: str = None, caused_by: str = None):
         self.codebook = cb
+        self.caused_by = caused_by
         if msg is None:
             self.message = f"Dataset <{dataset_version}> for Codebook <{cb.name}> is erroneous!"
         else:
