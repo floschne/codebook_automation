@@ -4,8 +4,8 @@ services:
   api:
     image: 'p0w3r/codebook_automation:latest'
     volumes:
-      - ./models:/models
+      - ./data:/data
     environment:
-      - MODEL_BASE_PATH=/models
+      - DATA_BASE_PATH=/data
     ports:
       - "${CBA_API_PORT}:80"
