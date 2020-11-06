@@ -25,6 +25,9 @@ class Predictor(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
+            backend_logger.info('Instantiating Predictor!')
+            cls._mm = ModelManager()
+
             # load config file
             config = json.load(open("config.json", "r"))
 
@@ -35,9 +38,7 @@ class Predictor(object):
             else:
                 backend_logger.info("GPU support for prediction enabled!")
 
-            backend_logger.info('Instantiating Predictor!')
             cls._singleton = super(Predictor, cls).__new__(cls)
-            cls._mm = ModelManager()
 
         return cls._singleton
 
@@ -48,9 +49,10 @@ class Predictor(object):
             try:
                 cb = r.codebook
                 doc = r.doc
+                model_version = r.model_version
 
                 # load the estimator
-                estimator = self._mm.load_estimator(cb)
+                estimator = self._mm.load_estimator(cb, model_version=model_version)
                 # build the sample(s) for the doc
                 samples = self._build_tf_sample(doc)
                 # get predictions
@@ -69,9 +71,10 @@ class Predictor(object):
             try:
                 cb = r.codebook
                 docs = r.docs
+                model_version = r.model_version
 
                 # load the estimator
-                estimator = self._mm.load_estimator(cb)
+                estimator = self._mm.load_estimator(cb, model_version=model_version)
                 # build the sample(s) for the doc
                 samples = [self._build_tf_sample(doc) for doc in docs]
                 # get predictions
@@ -135,9 +138,8 @@ class Predictor(object):
         probs = pred['probabilities'].numpy()[0].tolist()
 
         cb = req.codebook
-        mid = ModelManager.compute_model_id(cb)
         if not len(probs) == len(classes):
-            raise ErroneousModelException(mid, cb)
+            raise ErroneousModelException(cb=cb)
 
         # apply mapping
         doc = req.doc
@@ -168,9 +170,8 @@ class Predictor(object):
         probs_list = [p['probabilities'].numpy()[0].tolist() for p in preds]
 
         cb = req.codebook
-        mid = ModelManager.compute_model_id(cb)
         if not len(probs_list[0]) == len(classes):
-            raise ErroneousModelException(mid, cb)
+            raise ErroneousModelException(cb=cb)
 
         # apply mapping
         mapping = req.mapping

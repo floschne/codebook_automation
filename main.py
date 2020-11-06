@@ -4,13 +4,15 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from api.routers import general, model, prediction
+from api.routers import general, model, prediction, training
 from backend.exceptions import ModelNotAvailableException, ErroneousMappingException, ErroneousModelException, \
-    ModelMetadataNotAvailableException, PredictionError
+    ModelMetadataNotAvailableException, PredictionError, ModelInitializationException
 from logger import backend_logger
 
 # create the main app
-app = FastAPI()
+app = FastAPI(title="Codebook Automation API",
+              description="An easy to use API for AI based prediction of Codebook Tags for CodeAnno documents.",
+              version="beta")
 
 
 @app.on_event("startup")
@@ -23,6 +25,7 @@ async def startup_event():
 app.include_router(general.router)
 app.include_router(model.router, prefix=model.PREFIX)
 app.include_router(prediction.router, prefix=prediction.PREFIX)
+app.include_router(training.router, prefix=training.PREFIX)
 
 
 # custom exception handlers
@@ -40,6 +43,15 @@ async def model_not_available_exception_handler(request: Request, exc: ModelNotA
     backend_logger.error(exc.message)
     return JSONResponse(
         status_code=404,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(ModelInitializationException)
+async def model_initialization_exception_handler(request: Request, exc: ModelInitializationException):
+    backend_logger.error(exc.message)
+    return JSONResponse(
+        status_code=500,
         content={"message": exc.message}
     )
 

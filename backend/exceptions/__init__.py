@@ -1,8 +1,10 @@
 from .excepts import ErroneousMappingException, ModelNotAvailableException, ModelMetadataNotAvailableException, \
-    ErroneousModelException, PredictionError
+    ErroneousModelException, PredictionError, ModelInitializationException, ErroneousDatasetException
 
 __all__ = [ErroneousModelException,
            ModelNotAvailableException,
            ModelMetadataNotAvailableException,
            ErroneousModelException,
-           PredictionError]
+           PredictionError,
+           ModelInitializationException,
+           ErroneousDatasetException]

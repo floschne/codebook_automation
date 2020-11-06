@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -11,9 +11,11 @@ class PredictionRequest(BaseModel):
     doc: DocumentModel
     codebook: CodebookModel
     mapping: TagLabelMapping = None
+    model_version: Optional[str] = "default"
 
 
 class MultiDocumentPredictionRequest(BaseModel):
     docs: List[DocumentModel]
     codebook: CodebookModel
-    mapping: TagLabelMapping = None
+    mapping: Optional[TagLabelMapping] = None
+    model_version: Optional[str] = "default"
