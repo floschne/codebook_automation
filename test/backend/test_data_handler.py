@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.append(str(os.getcwd()))
+
 import pytest
 
 from api.model import CodebookModel
