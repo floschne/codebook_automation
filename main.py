@@ -5,10 +5,18 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from api.routers import general, model, prediction, training
+from backend import DataHandler, ModelFactory, ModelManager, Predictor, Trainer
 from backend.exceptions import ModelNotAvailableException, ErroneousMappingException, ErroneousModelException, \
     ModelMetadataNotAvailableException, PredictionError, ModelInitializationException, ErroneousDatasetException, \
     NoDataForCodebookException, DatasetNotAvailableException, InvalidModelIdException
 from logger import backend_logger
+
+# instantiate singletons
+DataHandler()
+ModelFactory()
+ModelManager()
+Predictor()
+Trainer()
 
 # create the main app
 app = FastAPI(title="Codebook Automation API",
@@ -16,10 +24,9 @@ app = FastAPI(title="Codebook Automation API",
               version="beta")
 
 
-@app.on_event("startup")
-async def startup_event():
-    # TODO apply app specific configs here
-    pass
+@app.on_event("shutdown")
+def shutdown_event():
+    Trainer.shutdown()
 
 
 # include the routers

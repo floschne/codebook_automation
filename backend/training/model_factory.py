@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Dict
 
 import numpy as np
 import pandas as pd
@@ -12,7 +12,6 @@ from api.model import CodebookModel, ModelConfig, TrainingRequest
 from logger import backend_logger
 from ..data_handler import DataHandler
 from ..exceptions import InvalidModelIdException, DatasetNotAvailableException, TFHubEmbeddingException
-from ..model_manager import ModelManager
 
 
 class ModelFactory(object):
@@ -21,21 +20,19 @@ class ModelFactory(object):
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
             backend_logger.info('Instantiating ModelFactory!')
-
             cls._singleton = super(ModelFactory, cls).__new__(cls)
-            cls._dh = DataHandler()
-            cls._mm = ModelManager()
 
         return cls._singleton
 
-    def create_datasets(self, cb: CodebookModel, dataset_version: str = "default", get_labels_only=False) -> \
+    @staticmethod
+    def create_datasets(cb: CodebookModel, dataset_version: str = "default", get_labels_only=False) -> \
             Union[List[str], Tuple[tf.data.Dataset, tf.data.Dataset, List[str]]]:
-        train_df, test_df = self.dataset_is_available(cb, dataset_version, return_dataframes=True)
+        train_df, test_df = ModelFactory.dataset_is_available(cb, dataset_version, return_dataframes=True)
         if train_df is None or test_df is None:
             raise DatasetNotAvailableException(dataset_version=dataset_version, cb=cb)
 
         # prepare the dataframes
-        train_set, test_set, label_categories = self._prepare_dataframes(train_df, test_df)
+        train_set, test_set, label_categories = ModelFactory._prepare_dataframes(train_df, test_df)
         if get_labels_only:
             return label_categories
 
@@ -53,15 +50,16 @@ class ModelFactory(object):
 
         return train_ds, test_ds, label_categories
 
-    def dataset_is_available(self, cb: CodebookModel, dataset_version: str, return_dataframes=False) -> \
+    @staticmethod
+    def dataset_is_available(cb: CodebookModel, dataset_version: str, return_dataframes=False) -> \
             Union[bool, Tuple[pd.DataFrame, pd.DataFrame]]:
 
-        dataset_dir = self._dh.get_dataset_directory(cb, dataset_version=dataset_version)
+        dataset_dir = DataHandler.get_dataset_directory(cb, dataset_version=dataset_version)
         # make sure train.csv & test.csv is available and has two columns 'text' & 'label'
         train_csv = dataset_dir.joinpath("train.csv")
         test_csv = dataset_dir.joinpath("test.csv")
 
-        if not train_csv.exists() and not test_csv.exists():
+        if not train_csv.exists() or not test_csv.exists():
             return False
         else:
             # TODO this might be very inefficient for large datasets?!
@@ -72,14 +70,14 @@ class ModelFactory(object):
             else:
                 if return_dataframes:
                     return train_df, test_df
-
         return True
 
-    def build_model(self, req: TrainingRequest, n_classes: int) -> \
+    @staticmethod
+    def build_model(req: TrainingRequest, n_classes: int) -> \
             Tuple[tf.estimator.DNNClassifier, DenseFeatureColumn, str]:
 
         # TODO remove if available or other strategy
-        model_dir = self._dh.get_model_directory(req.cb, req.model_version, create=True)
+        model_dir = DataHandler.get_model_directory(req.cb, req.model_version, create=True)
 
         # TODO config in file
         run_config = tf.estimator.RunConfig(model_dir=model_dir,
@@ -87,40 +85,65 @@ class ModelFactory(object):
                                             save_checkpoints_steps=500)
 
         conf = req.model_config
-        feature_columns = self._create_embedding_feature_column(conf)
+        feature_columns = ModelFactory._create_embedding_feature_column(conf)
         estimator = tf.estimator.DNNClassifier(hidden_units=conf.hidden_units,
                                                feature_columns=feature_columns,
                                                n_classes=n_classes,
                                                dropout=conf.dropout,
                                                optimizer=conf.optimizer,
                                                config=run_config)
-        model_id = self.get_model_id(req)
+        model_id = ModelFactory.get_model_id(req)
 
         return estimator, feature_columns[0], model_id
 
-    def get_model_id(self, req: TrainingRequest) -> str:
-        # TODO make this more stable
-        return self._dh.get_data_handle(cb=req.cb) + "_m_" + req.model_version + "_d_" + req.dataset_version
+    @staticmethod
+    def get_model_id(req: TrainingRequest) -> str:
+        mid = DataHandler.get_data_handle(cb=req.cb) + "_m_" + req.model_version + "_d_" + req.dataset_version
+        assert ModelFactory.is_valid_model_id(mid)
+        return mid
 
-    def get_model_dir(self, model_id: str, create: bool = False) -> Path:
-        model_info = self._validate_model_id(model_id)
-        return self._dh.get_model_dir_from_handle(cb_data_handle=model_info['cb_data_handle'],
-                                                  model_version=model_info['model_version'],
-                                                  create=create)
+    @staticmethod
+    def get_model_dir(model_id: str, create: bool = False) -> Path:
+        model_info = ModelFactory.parse_model_id(model_id)
+        return DataHandler.get_model_dir_from_handle(cb_data_handle=model_info['cb_data_handle'],
+                                                     model_version=model_info['model_version'],
+                                                     create=create)
 
-    def get_log_file(self, model_id: str, create: bool = True) -> Path:
-        model_dir = self.get_model_dir(model_id=model_id, create=create)
-        log_path = model_dir.joinpath("model.log")
+    @staticmethod
+    def get_training_log_file(model_id: str, create: bool = True) -> Path:
+        model_dir = ModelFactory.get_model_dir(model_id=model_id, create=create)
+        log_path = model_dir.joinpath("training.log")
         if create:
             log_path.touch()
         # TODO throw exception
         assert log_path.exists(), f"Log File not found at {log_path}"
         return log_path
 
-    def get_metadata_file(self, model_id: str) -> Path:
-        model_dir = self.get_model_dir(model_id=model_id)
+    @staticmethod
+    def get_metadata_file(model_id: str, create: bool = False) -> Path:
+        model_dir = ModelFactory.get_model_dir(model_id=model_id)
         metadata_path = model_dir.joinpath("metadata.json")
+        if create:
+            metadata_path.touch(exist_ok=True)
         return metadata_path
+
+    @staticmethod
+    def is_valid_model_id(model_id: str) -> bool:
+        model_id_pattern = re.compile(r"[a-f0-9]{32}_m_[A-za-z0-9]+_d_[A-za-z0-9]+")
+        if not model_id_pattern.match(model_id):
+            raise InvalidModelIdException(model_id)
+        else:
+            return True
+
+    @staticmethod
+    def parse_model_id(model_id: str) -> Dict[str, str]:
+        assert ModelFactory.is_valid_model_id(model_id)
+        data = model_id.split("_")
+        return {
+            'cb_data_handle': data[0],
+            'model_version': data[2],
+            'dataset_version': data[4]
+        }
 
     @staticmethod
     def _prepare_dataframes(train_set: pd.DataFrame, test_set: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
@@ -151,16 +174,3 @@ class ModelFactory(object):
             return [embedding_column]
         except Exception as e:
             raise TFHubEmbeddingException(embedding_type=conf.embedding_type)
-
-    @staticmethod
-    def _validate_model_id(model_id: str):
-        model_id_pattern = re.compile(r"[a-f0-9]{32}_m_[a-z0-9]+_d_[a-z0-9]+")
-        if not model_id_pattern.match(model_id):
-            raise InvalidModelIdException(model_id)
-        else:
-            data = model_id.split("_")
-            return {
-                'cb_data_handle': data[0],
-                'model_version': data[2],
-                'dataset_version': data[4]
-            }

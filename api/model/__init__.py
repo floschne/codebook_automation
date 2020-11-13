@@ -1,5 +1,6 @@
 from .boolean_response import BooleanResponse
 from .codebook_model import CodebookModel
+from .dataset_info_request import DatasetInfoRequest
 from .document_model import DocumentModel
 from .model_config import ModelConfig, OptimizerIdentifier, ActivationFunctionIdentifier
 from .model_metadata import ModelMetadata
@@ -9,7 +10,7 @@ from .string_response import StringResponse
 from .tag_label_mapping import TagLabelMapping
 from .training_request import TrainingRequest
 from .training_response import TrainingResponse
-from .training_state import TrainingState, TrainingStatus
+from .training_status import TrainingState, TrainingStatus
 
 __all__ = [CodebookModel,
            DocumentModel,
@@ -26,4 +27,5 @@ __all__ = [CodebookModel,
            OptimizerIdentifier,
            ActivationFunctionIdentifier,
            TrainingState,
-           TrainingStatus]
+           TrainingStatus,
+           DatasetInfoRequest]

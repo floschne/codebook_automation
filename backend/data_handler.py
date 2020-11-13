@@ -102,7 +102,7 @@ class DataHandler(object):
             DataHandler._relative_dataset_directory).joinpath(
             dataset_version)
         if create:
-            os.makedirs(data_directory, exist_ok=True)
+            data_directory.mkdir(exist_ok=True, parents=True)
         if not data_directory.is_dir():
             raise DatasetNotAvailableException(dataset_version=dataset_version, cb=cb)
         return data_directory
@@ -112,7 +112,7 @@ class DataHandler(object):
         data_handle = DataHandler.get_data_handle(cb)
         data_directory = Path(DataHandler._DATA_BASE_PATH, data_handle)
         if create:
-            data_directory.mkdir(exist_ok=True)
+            data_directory.mkdir(exist_ok=True, parents=True)
         if not data_directory.is_dir():
             raise NoDataForCodebookException(cb=cb)
         return data_directory

@@ -10,21 +10,19 @@ PREFIX = "/model"
 
 router = APIRouter()
 
-mm = ModelManager()
-
 
 @router.post("/is_available/", response_model=BooleanResponse, tags=["model"])
 async def is_available(cb: CodebookModel, model_version: Optional[str] = "default"):
     api_logger.info(
         f"POST request on {PREFIX}/is_available with model version '{model_version}'for Codebook {cb.json()}")
-    return BooleanResponse(value=mm.model_is_available(cb=cb, model_version=model_version))
+    return BooleanResponse(value=ModelManager.model_is_available(cb=cb, model_version=model_version))
 
 
 @router.post("/get_metadata/", response_model=ModelMetadata, tags=["model"])
 async def get_metadata(cb: CodebookModel, model_version: Optional[str] = "default"):
     api_logger.info(
         f"POST request on {PREFIX}/get_metadata with model version '{model_version}'for Codebook {cb.json()}")
-    return mm.load_model_metadata(cb, model_version=model_version)
+    return ModelManager.load_model_metadata(cb, model_version=model_version)
 
 
 @router.put("/upload_for_codebook/", response_model=StringResponse, tags=["model"])
@@ -43,4 +41,4 @@ async def upload_for_codebook(codebook_name: str = Form(..., description="The na
     api_logger.info(
         f"POST request on {PREFIX}/upload_for_codebook with model version '{model_version}'for Codebook {cb.json()}")
 
-    return StringResponse(value=mm.store_uploaded_model(cb, model_version, model_archive))
+    return StringResponse(value=ModelManager.store_uploaded_model(cb, model_version, model_archive))

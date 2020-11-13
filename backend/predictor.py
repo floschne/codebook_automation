@@ -21,13 +21,10 @@ from .model_manager import ModelManager
 
 class Predictor(object):
     _singleton = None
-    _mm: ModelManager = None
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
             backend_logger.info('Instantiating Predictor!')
-            cls._mm = ModelManager()
-
             # load config file
             config = json.load(open("config.json", "r"))
 
@@ -52,7 +49,7 @@ class Predictor(object):
                 model_version = r.model_version
 
                 # load the model
-                model = self._mm.load_model(cb, model_version=model_version)
+                model = ModelManager.load_model(cb, model_version=model_version)
                 # build the sample(s) for the doc
                 samples = self._build_tf_sample(doc)
                 # get predictions
@@ -74,7 +71,7 @@ class Predictor(object):
                 model_version = r.model_version
 
                 # load the model
-                model = self._mm.load_model(cb, model_version=model_version)
+                model = ModelManager.load_model(cb, model_version=model_version)
                 # build the sample(s) for the doc
                 samples = [self._build_tf_sample(doc) for doc in docs]
                 # get predictions

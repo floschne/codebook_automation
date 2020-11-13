@@ -4,13 +4,15 @@ from pydantic import BaseModel
 
 
 class TrainingState(str, Enum):
+    preparing: str = "preparing"
     training: str = "training"
-    evaluate: str = "evaluate"
-    exported: str = "exported"
+    evaluating: str = "evaluating"
+    exporting: str = "exporting"
+    finished: str = "finished"
     error: str = "error"
     unknown: str = "unknown"
 
 
 class TrainingStatus(BaseModel):
-    state: str
-    process_alive: bool = False
+    state: str = TrainingState.unknown
+    process_status: str = "unknown"

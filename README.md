@@ -14,7 +14,7 @@ Coming soon...
 _Assuming that your in the root folder of this repository_
 ```
 pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8081
+DATA_BASE_PATH=/your/custom/data/path uvicorn main:app --host 0.0.0.0 --port 8081
 ```
 
 
