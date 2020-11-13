@@ -4,9 +4,9 @@ import tensorflow as tf
 from fastapi import UploadFile
 
 from api.model import CodebookModel, ModelMetadata
-from backend.exceptions import ErroneousModelException, ModelMetadataNotAvailableException
 from logger import backend_logger
 from .data_handler import DataHandler
+from .exceptions import ErroneousModelException, ModelMetadataNotAvailableException
 
 
 class ModelManager(object):
@@ -30,7 +30,7 @@ class ModelManager(object):
         model_dir = self._dh.get_model_directory(cb, model_version=model_version)
         return tf.saved_model.contains_saved_model(model_dir)
 
-    def load_estimator(self, cb: CodebookModel, model_version: str = "default"):
+    def load_model(self, cb: CodebookModel, model_version: str = "default"):
         """
         Loads the Tensorflow Estimator model for the given Codebook
         :param cb: the codebook

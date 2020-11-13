@@ -32,7 +32,7 @@ docker build -t p0w3r/codebook_automation:latest .
 
 _Assuming that_
  - _$PWD is root folder of this repository_
- - _config.backend.model_base_path_env_var == "MODEL_BASE_PATH"_
+ - _config.backend.data_base_path_env_var == "DATA_BASE_PATH"_
 ```
-PYTHONPATH=${PWD} MODEL_BASE_PATH=/your/custom/model/path pytest
+PYTHONPATH=${PWD} DATA_BASE_PATH=/your/custom/data/path pytest
 ```

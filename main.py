@@ -6,7 +6,8 @@ from fastapi.responses import JSONResponse
 
 from api.routers import general, model, prediction, training
 from backend.exceptions import ModelNotAvailableException, ErroneousMappingException, ErroneousModelException, \
-    ModelMetadataNotAvailableException, PredictionError, ModelInitializationException
+    ModelMetadataNotAvailableException, PredictionError, ModelInitializationException, ErroneousDatasetException, \
+    NoDataForCodebookException, DatasetNotAvailableException, InvalidModelIdException
 from logger import backend_logger
 
 # create the main app
@@ -52,7 +53,8 @@ async def model_initialization_exception_handler(request: Request, exc: ModelIni
     backend_logger.error(exc.message)
     return JSONResponse(
         status_code=500,
-        content={"message": exc.message}
+        content={"message": exc.message,
+                 "caused_by": exc.caused_by}
     )
 
 
@@ -75,7 +77,44 @@ async def erroneous_model_exception_handler(request: Request, exc: ErroneousMode
 
 
 @app.exception_handler(ModelMetadataNotAvailableException)
-async def model_metadata_not_available_exception_handler(request: Request, exc: ErroneousModelException):
+async def model_metadata_not_available_exception_handler(request: Request, exc: ModelMetadataNotAvailableException):
+    backend_logger.error(exc.message)
+    return JSONResponse(
+        status_code=500,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(ErroneousDatasetException)
+async def erroneous_dataset_exception_handler(request: Request, exc: ErroneousDatasetException):
+    backend_logger.error(exc.message)
+    return JSONResponse(
+        status_code=500,
+        content={"message": exc.message,
+                 "caused_by": exc.caused_by}
+    )
+
+
+@app.exception_handler(NoDataForCodebookException)
+async def no_data_for_codebook_exception_handler(request: Request, exc: NoDataForCodebookException):
+    backend_logger.error(exc.message)
+    return JSONResponse(
+        status_code=500,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(InvalidModelIdException)
+async def invalid_model_id_exception_exception_handler(request: Request, exc: InvalidModelIdException):
+    backend_logger.error(exc.message)
+    return JSONResponse(
+        status_code=500,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(DatasetNotAvailableException)
+async def dataset_not_available_exception_exception_handler(request: Request, exc: DatasetNotAvailableException):
     backend_logger.error(exc.message)
     return JSONResponse(
         status_code=500,

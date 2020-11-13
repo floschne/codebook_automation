@@ -4,6 +4,7 @@ uvicorn~=0.11.5
 pytest~=5.4.1
 requests~=2.23.0
 
+pandas~=1.0.3
 tensorflow~=2.3.0
 tensorflow-hub~=0.9.0
 tensorflow-datasets~=3.2.1

@@ -10,6 +10,9 @@ from fastapi import UploadFile
 
 from api.model import CodebookModel
 from logger import backend_logger
+from .exceptions import DatasetNotAvailableException
+from .exceptions import ModelNotAvailableException
+from .exceptions import NoDataForCodebookException
 
 
 class DataHandler(object):
@@ -55,8 +58,22 @@ class DataHandler(object):
             DataHandler._relative_model_directory).joinpath(
             model_version)
         if create:
-            model_dir.mkdir(exist_ok=True)
-        assert model_dir.is_dir()
+            model_dir.mkdir(exist_ok=True, parents=True)
+        if not model_dir.is_dir():
+            raise ModelNotAvailableException(model_version=model_version, cb=cb)
+        return model_dir
+
+    @staticmethod
+    def get_model_dir_from_handle(cb_data_handle: str, model_version: str = "default", create: bool = False) -> Path:
+        model_version = "default" if model_version is None or model_version == "" else model_version
+        # TODO exception if data dir not available
+        model_dir = DataHandler._get_data_dir_from_handle(cb_data_handle=cb_data_handle).joinpath(
+            DataHandler._relative_model_directory).joinpath(model_version)
+        if create:
+            model_dir.mkdir(exist_ok=True, parents=True)
+        if not model_dir.is_dir():
+            # TODO add model id or cb for proper error msg
+            raise ModelNotAvailableException()
         return model_dir
 
     @staticmethod
@@ -81,13 +98,14 @@ class DataHandler(object):
 
     @staticmethod
     def get_dataset_directory(cb: CodebookModel, dataset_version: str = "default", create: bool = False) -> Path:
-        dataset_dir = DataHandler._get_data_directory(cb, create).joinpath(
+        data_directory = DataHandler._get_data_directory(cb, create).joinpath(
             DataHandler._relative_dataset_directory).joinpath(
             dataset_version)
         if create:
-            os.makedirs(dataset_dir, exist_ok=True)
-        assert dataset_dir.is_dir()
-        return dataset_dir
+            os.makedirs(data_directory, exist_ok=True)
+        if not data_directory.is_dir():
+            raise DatasetNotAvailableException(dataset_version=dataset_version, cb=cb)
+        return data_directory
 
     @staticmethod
     def _get_data_directory(cb: CodebookModel, create: bool = False) -> Path:
@@ -95,6 +113,13 @@ class DataHandler(object):
         data_directory = Path(DataHandler._DATA_BASE_PATH, data_handle)
         if create:
             data_directory.mkdir(exist_ok=True)
+        if not data_directory.is_dir():
+            raise NoDataForCodebookException(cb=cb)
+        return data_directory
+
+    @staticmethod
+    def _get_data_dir_from_handle(cb_data_handle: str) -> Path:
+        data_directory = Path(DataHandler._DATA_BASE_PATH, cb_data_handle)
         assert data_directory.is_dir()
         return data_directory
 

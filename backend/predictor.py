@@ -51,12 +51,12 @@ class Predictor(object):
                 doc = r.doc
                 model_version = r.model_version
 
-                # load the estimator
-                estimator = self._mm.load_estimator(cb, model_version=model_version)
+                # load the model
+                model = self._mm.load_model(cb, model_version=model_version)
                 # build the sample(s) for the doc
                 samples = self._build_tf_sample(doc)
                 # get predictions
-                prediction = estimator.signatures["predict"](examples=samples)
+                prediction = model.signatures["predict"](examples=samples)
                 # build result and add to queue
                 q.put(self._build_prediction_result(r, prediction))
             except Exception as e:
@@ -73,12 +73,12 @@ class Predictor(object):
                 docs = r.docs
                 model_version = r.model_version
 
-                # load the estimator
-                estimator = self._mm.load_estimator(cb, model_version=model_version)
+                # load the model
+                model = self._mm.load_model(cb, model_version=model_version)
                 # build the sample(s) for the doc
                 samples = [self._build_tf_sample(doc) for doc in docs]
                 # get predictions
-                predictions = [estimator.signatures["predict"](examples=sample) for sample in samples]
+                predictions = [model.signatures["predict"](examples=sample) for sample in samples]
                 # build result and add to queue
                 q.put(self._build_multi_prediction_result(r, predictions))
             except Exception as e:
