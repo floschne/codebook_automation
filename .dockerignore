@@ -1,0 +1,9 @@
+sample_txt
+data
+notebooks
+.idea
+.git
+.pytest_cache
+__pycache__
+.travis.yml
+.gitignore
