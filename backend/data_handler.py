@@ -40,16 +40,19 @@ class DataHandler(object):
 
         return cls._singleton
 
+    # noinspection GrazieInspection
     @staticmethod
     def get_data_handle(cb: CodebookModel) -> str:
         """
-        Computes the data handle for the given Codebook by MD5-hashing it's JSON representation (after sorting tags).
-        Note that this is just an identifier / handle that does not guarantee that data for the Codebook exists.
+        Computes the data handle for the given Codebook by MD5-hashing it's JSON representation (after sorting tags)
+        and adding its lowercase name as a prefix Note that this is just an identifier / handle that does not guarantee
+        that data for the Codebook exists.
+
         :param cb: The codebook model!
         :return: The data handle as a string
         """
         cb.tags.sort()
-        return hashlib.md5(cb.json().encode('utf-8')).hexdigest()
+        return cb.name.lower() + "_" + hashlib.md5(cb.json().encode('utf-8')).hexdigest()
 
     @staticmethod
     def get_model_directory(cb: CodebookModel, model_version: str = "default", create: bool = False) -> Path:
