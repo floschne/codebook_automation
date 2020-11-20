@@ -2,24 +2,24 @@
   <div>
     <b-form v-if="show" @submit="onSubmit" @reset="onReset">
       <b-form-group
-        id="label-model-version"
-        label="Model Version"
-        label-for="input-model-version"
-        description="Version of the model."
+        id="label-version"
+        label="Version"
+        label-for="input-version"
+        description="Version of the model/dataset."
         label-cols-md="4"
         label-cols-lg="2"
       >
         <b-form-input
-          id="input-model-version"
-          v-model="form.model_version"
+          id="input-version"
+          v-model="form.version"
           type="text"
           placeholder="default"
-          aria-describedby="input-model-version-feedback"
+          aria-describedby="input-version-feedback"
           trim
           :state="noSpaceStateMV"
         />
 
-        <b-form-invalid-feedback id="input-model-version-feedback">
+        <b-form-invalid-feedback id="input-version-feedback">
           No whitespaces allowed!
         </b-form-invalid-feedback>
       </b-form-group>
@@ -28,14 +28,14 @@
         id="label-name"
         label="Name:"
         label-for="input-name"
-        description="Name of the model"
+        description="Name of the model/Codebook"
         label-cols-md="4"
         label-cols-lg="2"
       >
         <b-form-input
           id="input-name"
           v-model="form.name"
-          placeholder="Enter model name"
+          placeholder="Enter model/Codebook name"
           aria-describedby="input-model-name-feedback"
           required
           trim
@@ -49,17 +49,19 @@
 
       <b-form-group
         id="label-tags"
-        label="Tags"
+        label="Tags/Labels"
         label-for="input-tags"
         label-cols-md="4"
         label-cols-lg="2"
+        description="Labels of the model / Tags of the Codebook"
       >
         <b-form-tags
           id="input-tags"
           v-model="form.tags"
           input-id="input-tags"
           separator=" ,;"
-          placeholder="Enter Tags separated by comma, semicolon or space"
+          placeholder="Enter Tags/Labels separated by comma, semicolon or space"
+          aria-describedby="input-tags-feedback"
           :state="noSpaceStateT"
           remove-on-delete
           required
@@ -70,16 +72,44 @@
         </b-form-invalid-feedback>
       </b-form-group>
 
-      <b-button
-        type="submit"
-        variant="primary"
-        :disabled="!(noSpaceStateMV && noSpaceStateN && noSpaceStateT)"
+      <b-form-group
+        v-if="showDatasetUpload || showModelUpload"
+        id="label-upload"
+        :label="showModelUpload ? 'Model Archive' : 'Dataset Archive'"
+        label-for="input-upload"
+        label-cols-md="4"
+        label-cols-lg="2"
       >
-        Get Metadata
-      </b-button>
-      <b-button type="reset" variant="danger">
-        Reset
-      </b-button>
+        <b-form-file
+          v-model="form.archive"
+          :state="Boolean(form.archive)"
+          placeholder="Choose an archive file or drop it here..."
+          drop-placeholder="Drop archive here..."
+          accept=".zip, .tar.gz"
+          required
+        />
+        <div v-if="Boolean(form.archive)" class="mt-2 text-muted small">
+          Selected file: {{ form.archive ? form.archive.name : '' }}
+        </div>
+
+        <b-form-invalid-feedback id="input-upload-feedback">
+          Select {{ showModelUpload ? 'pretrained model' : 'dataset' }} archive!
+        </b-form-invalid-feedback>
+      </b-form-group>
+
+      <b-button-group size="sm">
+        <b-button
+          type="submit"
+          variant="primary"
+          :disabled="!(noSpaceStateMV && noSpaceStateN && noSpaceStateT)"
+        >
+          Submit
+        </b-button>
+
+        <b-button type="reset" variant="danger">
+          Reset
+        </b-button>
+      </b-button-group>
     </b-form>
   </div>
 </template>
@@ -88,20 +118,24 @@
 export default {
   name: 'ModelForm',
   emits: ['model-form-data'],
+  props: {
+    showModelUpload: Boolean(false),
+    showDatasetUpload: Boolean(false)
+  },
   data () {
     return {
       form: {
-        model_version: String('default'),
+        version: String('default'),
         name: String(''),
-        tags: []
+        tags: [],
+        archive: null
       },
-      show: true,
-      init: true
+      show: true
     }
   },
   computed: {
     noSpaceStateMV () {
-      return this.form.model_version.search('\\s') < 0
+      return this.form.version.search('\\s') < 0
     },
     noSpaceStateN () {
       return this.form.name.search('\\s') < 0 && this.form.name.length >= 1
@@ -118,7 +152,7 @@ export default {
     onReset (evt) {
       evt.preventDefault()
       // Reset form values
-      this.form.model_version = 'default'
+      this.form.version = 'default'
       this.form.name = ''
       this.form.tags = []
       // Trick to reset/clear native browser form validation state

@@ -11,6 +11,7 @@
 <script>
 export default {
   name: 'HeartbeatCheck',
+  emits: ['api-dead'],
   data () {
     return {
       heartbeat: Boolean(false)

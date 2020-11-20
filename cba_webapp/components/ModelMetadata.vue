@@ -2,18 +2,29 @@
   <b-card
     header="Model Metadata"
   >
-    <b-card-body class="row mt-0 ml-0 pt-0 pl-0">
-      <ModelForm class="col-md-6" @model-form-submit="getModelMetadata" @model-form-reset="reset" />
-      <div class="col-md-6">
-        <pre v-if="show && !error"><code>{{ modelMetaData }}</code></pre>
-        <b-alert v-if="!show && !error" variant="info" class="text-center" show>
-          Enter Model Data
-        </b-alert>
+    <b-card-body>
+      <b-alert
+        variant="success"
+        class="text-center"
+        dismissible
+        :show="dismissCountdown"
+        @dismiss-count-down="countDownChanged"
+      >
+        Successfully retrieved model data!
+      </b-alert>
 
-        <b-alert v-if="error" variant="danger" show>
-          Cannot find Model!
-        </b-alert>
-      </div>
+      <b-alert v-model="err" variant="danger" show dismissible>
+        Cannot find Model!
+      </b-alert>
+      <b-row>
+        <b-col md="6">
+          <ModelForm @model-form-submit="getModelMetadata" @model-form-reset="reset" />
+        </b-col>
+
+        <b-col md="6" class="mt-sm-2 mt-md-0">
+          <pre v-if="success" class="bg-light text-dark p-2 rounded border border-dark"><code>{{ metaData }}</code></pre>
+        </b-col>
+      </b-row>
 
       <b-card-body />
     </b-card-body>
@@ -28,9 +39,10 @@ export default {
   components: { ModelForm },
   data () {
     return {
-      show: Boolean(false),
-      error: Boolean(false),
-      modelMetaData: Object
+      success: Boolean(false),
+      err: Boolean(false),
+      dismissCountdown: Number(0),
+      metaData: Object
     }
   },
   methods: {
@@ -41,22 +53,33 @@ export default {
         }
       }
       try {
-        const resp = await this.$axios.post(`/api/model/get_metadata/?=model_version=${modelFormData.model_version}`, {
+        this.reset()
+        const resp = await this.$axios.post(`/api/model/get_metadata/?=model_version=${modelFormData.version}`, {
           name: modelFormData.name,
           tags: modelFormData.tags
         }, config)
-        this.modelMetaData = resp.data
-        this.show = true
-        this.error = false
+
+        // TODO error handling if not 200
+        if (resp.status === 200) {
+          this.metaData = resp.data
+          this.success = true
+          this.dismissCountdown = 3
+        } else {
+          this.success = false
+          this.err = true
+        }
       } catch (error) {
-        this.show = false
-        this.error = true
+        this.success = false
+        this.err = true
       }
-      this.show = true
     },
     reset () {
-      this.show = false
-      this.error = false
+      this.success = false
+      this.err = false
+      this.dismissCountdown = 0
+    },
+    countDownChanged (dismissCountDown) {
+      this.dismissCountdown = dismissCountDown
     }
   }
 }
