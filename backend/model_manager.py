@@ -77,7 +77,7 @@ class ModelManager(object):
                                           f"Error while persisting model for Codebook {cb.name}!")
         if not ModelManager.model_is_available(cb):
             raise ErroneousModelException(model_version, cb,
-                                          f"Error while persisting model for Codebook {cb.name} under {path}!")
+                                          f"Archive contains no valid model for Codebook {cb.name} under {path}!")
         backend_logger.info(
             f"Successfully persisted model '{model_version}' for Codebook <{cb.name}> under {path}!")
         return str(path)
