@@ -1,7 +1,4 @@
 export default {
-  // Disable server-side rendering (https://go.nuxtjs.dev/ssr-mode)
-  ssr: false,
-
   // Global page headers (https://go.nuxtjs.dev/config-head)
   head: {
     title: 'cba_webapp',
@@ -28,15 +25,36 @@ export default {
 
   // Modules for dev and build (recommended) (https://go.nuxtjs.dev/config-modules)
   buildModules: [
-    // https://go.nuxtjs.dev/typescript
-    '@nuxt/typescript-build',
+    // https://go.nuxtjs.dev/eslint
+    '@nuxtjs/eslint-module'
   ],
 
   // Modules (https://go.nuxtjs.dev/config-modules)
   modules: [
     // https://go.nuxtjs.dev/bootstrap
     'bootstrap-vue/nuxt',
+    // https://go.nuxtjs.dev/axios
+    '@nuxtjs/axios',
+    '@nuxtjs/proxy',
+    // https://www.npmjs.com/package/nuxt-highlightjs
+    'nuxt-highlightjs'
   ],
+
+  // https://github.com/nuxt-community/proxy-module#readme
+  // needed for CORS
+  proxy: {
+    '/api/': { target: 'http://localhost:8081/', pathRewrite: { '^/api/': '' } }
+  },
+
+  // Axios module configuration (https://go.nuxtjs.dev/config-axios)
+  axios: {
+    proxy: true
+  },
+
+  // https://bootstrap-vue.org/docs#icons
+  bootstrapVue: {
+    icons: true // Install the IconsPlugin (in addition to BootStrapVue plugin
+  },
 
   // Build Configuration (https://go.nuxtjs.dev/config-build)
   build: {
