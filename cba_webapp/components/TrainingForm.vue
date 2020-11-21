@@ -379,10 +379,9 @@ export default {
     onSubmit (evt) {
       evt.preventDefault()
       this.$emit('training-form-submit', this.form)
-      console.log('auasdbuabsdassubbbbbbbbbbbbbbbbbb')
     },
-    updateHiddenUnits (hidden) {
-      this.hidden_units = hidden
+    updateHiddenUnits (hiddenUnits) {
+      this.form.model_config.hidden_units = hiddenUnits
     }
   }
 }

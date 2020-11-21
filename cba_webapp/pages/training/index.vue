@@ -33,7 +33,6 @@ export default {
   },
   methods: {
     setTrainingFromData (fromData) {
-      console.log('akkkkkk')
       this.training_form_data = fromData
     }
   }
