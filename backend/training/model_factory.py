@@ -129,7 +129,9 @@ class ModelFactory(object):
 
     @staticmethod
     def is_valid_model_id(model_id: str) -> bool:
-        model_id_pattern = re.compile(r"[a-f0-9]{32}_m_[A-za-z0-9]+_d_[A-za-z0-9]+")
+        # name_hash_m_modelVersion_d_datasetVersion
+        # TODO create own class for data handle
+        model_id_pattern = re.compile(r"[a-z0-9]+_[a-f0-9]{32}_m_[A-za-z0-9]+_d_[A-za-z0-9]+")
         if not model_id_pattern.match(model_id):
             raise InvalidModelIdException(model_id)
         else:
@@ -139,10 +141,11 @@ class ModelFactory(object):
     def parse_model_id(model_id: str) -> Dict[str, str]:
         assert ModelFactory.is_valid_model_id(model_id)
         data = model_id.split("_")
+        # TODO create own class for data handle
         return {
-            'cb_data_handle': data[0],
-            'model_version': data[2],
-            'dataset_version': data[4]
+            'cb_data_handle': data[0]+"_"+data[1],
+            'model_version': data[3],
+            'dataset_version': data[5]
         }
 
     @staticmethod

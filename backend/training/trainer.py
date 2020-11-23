@@ -7,7 +7,7 @@ import pprint as pp
 import shutil
 from multiprocessing import Pool, Manager
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 import psutil
 import tensorflow as tf
@@ -71,8 +71,11 @@ class Trainer(object):
         return ModelFactory.get_training_log_file(resp.model_id)
 
     @staticmethod
-    def get_train_status(resp: TrainingResponse) -> TrainingStatus:
-        return Trainer._status_dict[resp.model_id]
+    def get_train_status(resp: TrainingResponse) -> Optional[TrainingStatus]:
+        try:
+            return Trainer._status_dict[resp.model_id]
+        except Exception:
+            return None
 
     @staticmethod
     @logger.catch

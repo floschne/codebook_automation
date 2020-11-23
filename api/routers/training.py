@@ -2,7 +2,7 @@ from fastapi import APIRouter, Form, UploadFile, File
 from fastapi.responses import StreamingResponse
 
 from api.model import CodebookModel, TrainingRequest, TrainingResponse, BooleanResponse, TrainingStatus, \
-    DatasetInfoRequest
+    DatasetInfoRequest, TrainingState
 from backend.training.trainer import Trainer
 from logger import api_logger
 
@@ -49,4 +49,8 @@ async def get_train_log(resp: TrainingResponse):
 @router.post("/get_training_status/", response_model=TrainingStatus, tags=["training"])
 async def get_training_status(resp: TrainingResponse):
     api_logger.info(f"POST request on  {PREFIX}/get_training_status/ with TrainingResponse {resp}")
-    return Trainer.get_train_status(resp)
+    status = Trainer.get_train_status(resp)
+    if status is None:
+        return TrainingStatus(state=TrainingState.finished, process_status="unknown")
+    else:
+        return status
