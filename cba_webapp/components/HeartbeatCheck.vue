@@ -30,7 +30,7 @@ export default {
       }
       try {
         const resp = await this.$axios.get('/api/heartbeat', config)
-        this.heartbeat = resp.data.value
+        if (resp.status === 200) { this.heartbeat = resp.data.value } else { this.heartbeat = false }
         console.info(`API Heartbeat: ${this.heartbeat}`)
       } catch (error) {
         console.error(error)

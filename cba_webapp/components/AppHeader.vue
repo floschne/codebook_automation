@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <b-navbar toggleable="md" type="dark" variant="dark">
+  <header>
+    <b-navbar toggleable="md" type="dark" variant="dark" fixed="top">
       <b-navbar-brand to="/">
         CBA WebApp
       </b-navbar-brand>
@@ -28,7 +28,7 @@
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
-  </div>
+  </header>
 </template>
 
 <script>

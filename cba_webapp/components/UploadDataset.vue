@@ -1,7 +1,5 @@
 <template>
-  <b-card
-    header="Dataset Upload"
-  >
+  <div>
     <b-alert v-model="success" variant="success" show dismissible>
       Successfully uploaded dataset!
     </b-alert>
@@ -9,7 +7,7 @@
       Couldn't upload dataset!
     </b-alert>
     <ModelForm :show-dataset-upload="true" @model-form-submit="uploadDataset" @model-form-reset="reset" />
-  </b-card>
+  </div>
 </template>
 
 <script>
@@ -33,7 +31,6 @@ export default {
       formData.append('dataset_version', modelFormData.version)
       formData.append('dataset_archive', modelFormData.archive, modelFormData.archive.name)
 
-      console.log(JSON.stringify(formData))
       const config = {
         headers: {
           Accept: 'application/json',

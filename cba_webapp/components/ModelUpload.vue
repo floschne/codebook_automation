@@ -1,25 +1,15 @@
 <template>
-  <b-card
-    header="Pretrained Model Upload"
-  >
-    <b-card-body>
-      <b-row>
-        <b-col md="6">
-          <ModelForm :show-model-upload="true" @model-form-submit="uploadModel" @model-form-reset="reset" />
-        </b-col>
-
-        <b-col md="6" class="mt-sm-2 mt-md-0">
-          <b-alert v-model="success" variant="success" show dismissible>
-            Successfully uploaded dataset!
-          </b-alert>
-
-          <b-alert v-model="err" variant="danger" show dismissible>
-            Couldn't find Model!
-          </b-alert>
-        </b-col>
-      </b-row>
-    </b-card-body>
-  </b-card>
+  <div>
+    <b-alert v-model="success" variant="success" show dismissible>
+      Successfully uploaded dataset!
+    </b-alert>
+    <b-alert v-model="err" variant="danger" show dismissible>
+      Couldn't find Model!
+    </b-alert>
+    <b-row no-gutters>
+      <ModelForm :show-model-upload="true" @model-form-submit="uploadModel" @model-form-reset="reset" />
+    </b-row>
+  </div>
 </template>
 
 <script>

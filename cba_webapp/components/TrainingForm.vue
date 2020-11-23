@@ -153,7 +153,7 @@
             <b-input-group>
               <b-input-group-prepend>
                 <b-badge variant="primary" style="min-width: 2.5rem">
-                  <span>{{ form.model_config.dropout }}</span>
+                  <span class="align-middle">{{ form.model_config.dropout }}</span>
                 </b-badge>
               </b-input-group-prepend>
 
@@ -296,7 +296,7 @@
         variant="primary"
         :disabled="!(totalFormState)"
       >
-        Start Training!
+        Check training config
       </b-button>
     </b-form>
   </div>

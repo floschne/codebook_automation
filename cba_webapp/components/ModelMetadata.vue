@@ -1,34 +1,28 @@
 <template>
-  <b-card
-    header="Model Metadata"
-  >
-    <b-card-body>
-      <b-alert
-        variant="success"
-        class="text-center"
-        dismissible
-        :show="dismissCountdown"
-        @dismiss-count-down="countDownChanged"
-      >
-        Successfully retrieved model data!
-      </b-alert>
+  <div>
+    <b-alert
+      variant="success"
+      class="text-center"
+      dismissible
+      :show="dismissCountdown"
+      @dismiss-count-down="countDownChanged"
+    >
+      Successfully retrieved model data!
+    </b-alert>
 
-      <b-alert v-model="err" variant="danger" show dismissible>
-        Cannot find Model!
-      </b-alert>
-      <b-row>
-        <b-col md="6">
-          <ModelForm @model-form-submit="getModelMetadata" @model-form-reset="reset" />
-        </b-col>
+    <b-alert v-model="err" variant="danger" show dismissible>
+      Cannot find Model!
+    </b-alert>
+    <b-row>
+      <b-col :md="success ? 6 : 12">
+        <ModelForm @model-form-submit="getModelMetadata" @model-form-reset="reset" />
+      </b-col>
 
-        <b-col md="6" class="mt-sm-2 mt-md-0">
-          <pre v-if="success" class="bg-light text-dark p-2 rounded border border-dark"><code>{{ metaData }}</code></pre>
-        </b-col>
-      </b-row>
-
-      <b-card-body />
-    </b-card-body>
-  </b-card>
+      <b-col v-if="success" md="6" class="mt-sm-2 mt-md-0">
+        <pre class="bg-light text-dark p-2 rounded border border-dark"><code>{{ metaData }}</code></pre>
+      </b-col>
+    </b-row>
+  </div>
 </template>
 
 <script>

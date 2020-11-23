@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="w-100">
     <b-form v-if="show" @submit="onSubmit" @reset="onReset">
       <b-form-group
         id="label-version"
@@ -16,7 +16,7 @@
           placeholder="default"
           aria-describedby="input-version-feedback"
           trim
-          :state="noSpaceStateMV"
+          :state="versionInputState"
         />
 
         <b-form-invalid-feedback id="input-version-feedback">
@@ -39,7 +39,7 @@
           aria-describedby="input-model-name-feedback"
           required
           trim
-          :state="noSpaceStateN"
+          :state="nameInputState"
         />
 
         <b-form-invalid-feedback id="input-model-name-feedback">
@@ -62,7 +62,7 @@
           separator=" ,;"
           placeholder="Enter Tags/Labels separated by comma, semicolon or space"
           aria-describedby="input-tags-feedback"
-          :state="noSpaceStateT"
+          :state="tagsInputState"
           remove-on-delete
           required
         />
@@ -101,9 +101,9 @@
         <b-button
           type="submit"
           variant="primary"
-          :disabled="!(noSpaceStateMV && noSpaceStateN && noSpaceStateT)"
+          :disabled="!(versionInputState && nameInputState && tagsInputState)"
         >
-          Submit
+          {{ submitButtonText }}
         </b-button>
 
         <b-button type="reset" variant="danger">
@@ -134,14 +134,17 @@ export default {
     }
   },
   computed: {
-    noSpaceStateMV () {
+    versionInputState () {
       return this.form.version.search('\\s') < 0
     },
-    noSpaceStateN () {
+    nameInputState () {
       return this.form.name.search('\\s') < 0 && this.form.name.length >= 1
     },
-    noSpaceStateT () {
+    tagsInputState () {
       return this.form.tags.length >= 2
+    },
+    submitButtonText () {
+      if (this.showDatasetUpload) { return 'Upload Dataset' } else if (this.showModelUpload) { return 'Upload Model' } else { return 'Submit' }
     }
   },
   methods: {
