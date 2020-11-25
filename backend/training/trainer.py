@@ -14,7 +14,7 @@ import tensorflow as tf
 from fastapi import UploadFile
 from loguru import logger
 
-from api.model import CodebookModel, TrainingResponse, TrainingRequest, TrainingState, TrainingStatus
+from api.model import CodebookModel, TrainingResponse, TrainingRequest, TrainingState, TrainingStatus, ModelMetadata
 from logger import backend_logger
 from .model_factory import ModelFactory
 from ..data_handler import DataHandler
@@ -131,20 +131,18 @@ def generate_model_metadata(r: TrainingRequest, model_id: str, eval_results: Dic
     backend_logger.info(f"Generating model metadata file for model<{model_id}>")
     label_categories = ModelFactory.create_datasets(r.cb, r.dataset_version, get_labels_only=True)
 
-    metadata = {}
-    metadata.update(eval_results)
-    metadata['labels'] = dict(enumerate(label_categories))
-    metadata['model_type'] = 'DNNClassifier'
-    metadata['model_config'] = r.model_config.dict()
-    metadata['timestamp'] = str(dt.datetime.now())
-
-    # make sure strings are in dict
-    metadata = {str(key): str(val) for key, val in metadata.items()}
+    metadata = ModelMetadata(
+        labels=dict(enumerate(label_categories)),
+        model_type='DNNClassifier',
+        evaluation=eval_results,
+        model_config=r.model_config.dict(),
+        timestamp=str(dt.datetime.now())
+    )
 
     # persist
     metadata_dst = ModelFactory.get_metadata_file(model_id)
     with open(metadata_dst, 'w') as fp:
-        json.dump(metadata, fp, indent=2)
+        print(metadata.json(), file=fp)
     assert metadata_dst.exists()
     backend_logger.info(f"Model metadata for model <{model_id}> persisted at {str(metadata_dst)}")
 
