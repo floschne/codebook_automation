@@ -84,6 +84,7 @@ class DataHandler(object):
         try:
             ds_dir = DataHandler.get_dataset_directory(cb, dataset_version=dataset_version, create=True)
             dst = ds_dir.joinpath(dataset_archive.filename)
+            backend_logger.info(f"Extracting dataset archive to {str(dst)}")
             archive_path = DataHandler._store_uploaded_file(dataset_archive, dst)
             return DataHandler._extract_archive(archive=archive_path, dst=ds_dir)
         finally:
@@ -92,12 +93,20 @@ class DataHandler(object):
     @staticmethod
     def store_model(cb: CodebookModel, model_archive: UploadFile, model_version: str) -> Path:
         try:
-            ds_dir = DataHandler.get_model_directory(cb, model_version=model_version, create=True)
-            dst = ds_dir.joinpath(model_archive.filename)
+            model_dir = DataHandler.get_model_directory(cb, model_version=model_version, create=True)
+            dst = model_dir.joinpath(model_archive.filename)
+            backend_logger.info(f"Extracting model archive to {str(dst)}")
             archive_path = DataHandler._store_uploaded_file(model_archive, dst)
-            return DataHandler._extract_archive(archive=archive_path, dst=ds_dir)
+            return DataHandler._extract_archive(archive=archive_path, dst=model_dir)
         finally:
             model_archive.file.close()
+
+    @staticmethod
+    def remove_model(cb: CodebookModel, model_version: str):
+        model_dir = DataHandler.get_model_directory(cb, model_version=model_version)
+        backend_logger.warning(f"Permanently removing model {model_version} of Codebook '{cb.name}'")
+        shutil.rmtree(model_dir)
+        pass
 
     @staticmethod
     def get_dataset_directory(cb: CodebookModel, dataset_version: str = "default", create: bool = False) -> Path:

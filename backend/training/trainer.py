@@ -5,7 +5,7 @@ import multiprocessing
 import os
 import pprint as pp
 import shutil
-from multiprocessing import Pool, Manager
+from multiprocessing import Manager, Process
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -26,7 +26,6 @@ class Trainer(object):
     _singleton = None
     # TODO persist in redis or similar
     _status_dict: Dict[str, TrainingStatus] = None
-    _pool: Pool = None
     _manager: Manager = None
 
     def __new__(cls, *args, **kwargs):
@@ -46,13 +45,11 @@ class Trainer(object):
             cls._singleton = super(Trainer, cls).__new__(cls)
             cls._manager = Manager()
             cls._status_dict = cls._manager.dict()
-            cls._pool = Pool(processes=config['backend']['num_training_workers'])
 
         return cls._singleton
 
     @staticmethod
     def shutdown():
-        Trainer._pool.close()
         Trainer._manager.shutdown()
 
     @staticmethod
@@ -60,8 +57,17 @@ class Trainer(object):
         # TODO
         #  - how to assign GPU(s)
 
-        backend_logger.info(f"Spawning new process for train-eval-export cycle for Codebook <{request.cb.name}>")
-        res = Trainer._pool.apply_async(train_eval_export, args=(request, Trainer._status_dict,))
+        # remove model if another with same version exists!
+        if ModelManager.model_is_available(request.cb, request.model_version):
+            backend_logger.warning(f"Model {request.model_version} for Codebook '{request.cb.name}' already exists!")
+            DataHandler.remove_model(request.cb, request.model_version)
+
+        with Manager() as manager:
+            status_dict = manager.dict()
+
+            backend_logger.info(f"Spawning new process for train-eval-export cycle for Codebook <{request.cb.name}>")
+            p = Process(target=train_eval_export, args=(request, Trainer._status_dict,))
+            p.start()
 
         model_id = ModelFactory.get_model_id(req=request)
         return TrainingResponse(model_id=model_id)
