@@ -6,7 +6,8 @@ from fastapi import UploadFile
 from api.model import CodebookModel, ModelMetadata
 from logger import backend_logger
 from .data_handler import DataHandler
-from .exceptions import ErroneousModelException, ModelMetadataNotAvailableException
+from .exceptions import ErroneousModelException, ModelMetadataNotAvailableException, ModelNotAvailableException, \
+    NoDataForCodebookException
 
 
 class ModelManager(object):
@@ -26,8 +27,11 @@ class ModelManager(object):
         :param model_version: version tag of the model (e.g. "default")
         :return: True if the model for the codebook is available and False otherwise
         """
-        model_dir = DataHandler.get_model_directory(cb, model_version=model_version)
-        return tf.saved_model.contains_saved_model(model_dir)
+        try:
+            model_dir = DataHandler.get_model_directory(cb, model_version=model_version)
+            return tf.saved_model.contains_saved_model(model_dir)
+        except (ModelMetadataNotAvailableException, ModelNotAvailableException, NoDataForCodebookException) as e:
+            return False
 
     @staticmethod
     def load_model(cb: CodebookModel, model_version: str = "default"):

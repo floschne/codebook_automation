@@ -87,7 +87,7 @@ async def erroneous_model_exception_handler(request: Request, exc: ErroneousMode
 async def model_metadata_not_available_exception_handler(request: Request, exc: ModelMetadataNotAvailableException):
     backend_logger.error(exc.message)
     return JSONResponse(
-        status_code=500,
+        status_code=404,
         content={"message": exc.message}
     )
 
@@ -96,7 +96,7 @@ async def model_metadata_not_available_exception_handler(request: Request, exc: 
 async def erroneous_dataset_exception_handler(request: Request, exc: ErroneousDatasetException):
     backend_logger.error(exc.message)
     return JSONResponse(
-        status_code=500,
+        status_code=400,
         content={"message": exc.message,
                  "caused_by": exc.caused_by}
     )
@@ -106,7 +106,7 @@ async def erroneous_dataset_exception_handler(request: Request, exc: ErroneousDa
 async def no_data_for_codebook_exception_handler(request: Request, exc: NoDataForCodebookException):
     backend_logger.error(exc.message)
     return JSONResponse(
-        status_code=500,
+        status_code=404,
         content={"message": exc.message}
     )
 
@@ -115,7 +115,7 @@ async def no_data_for_codebook_exception_handler(request: Request, exc: NoDataFo
 async def invalid_model_id_exception_exception_handler(request: Request, exc: InvalidModelIdException):
     backend_logger.error(exc.message)
     return JSONResponse(
-        status_code=500,
+        status_code=400,
         content={"message": exc.message}
     )
 
@@ -124,7 +124,7 @@ async def invalid_model_id_exception_exception_handler(request: Request, exc: In
 async def dataset_not_available_exception_exception_handler(request: Request, exc: DatasetNotAvailableException):
     backend_logger.error(exc.message)
     return JSONResponse(
-        status_code=500,
+        status_code=404,
         content={"message": exc.message}
     )
 
