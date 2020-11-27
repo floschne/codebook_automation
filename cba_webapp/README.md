@@ -1,7 +1,7 @@
-# cba_webapp
+# Codebook Automation WebApp
 
-## Build Setup
 
+## How to run locally
 ```bash
 # install dependencies
 $ npm install
@@ -17,4 +17,5 @@ $ npm run start
 $ npm run generate
 ```
 
-For detailed explanation on how things work, check out [Nuxt.js docs](https://nuxtjs.org).
+## How to run with docker
+

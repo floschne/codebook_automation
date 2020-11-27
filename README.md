@@ -19,13 +19,16 @@ DATA_BASE_PATH=/your/custom/data/path uvicorn main:app --host 0.0.0.0 --port 808
 
 
 ## How to run with docker
+**Make sure to set the correct environment variables in the .env file!**
+
 ```
 docker-compose up -d
 ```
-Docker image will be pulled from docker-hub if not available on the system.
-To manually and locally build the image run
+Docker images will be pulled from docker-hub if not available on the system.
+To manually and locally build the image run:
 ```
-docker build -t p0w3r/codebook_automation:latest .
+docker build -t p0w3r/codebook_automation_api:latest .
+docker build -t p0w3r/codebook_automation_app:latest ./cba_webapp/
 ```
 
 ## How to run tests
