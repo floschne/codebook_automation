@@ -1,18 +1,17 @@
 const proxyConfig = () => {
-
   let proxy_target = ''
 
   if (process.env.CBA_DEPLOY === 'local') {
     proxy_target = 'http://localhost:8081/'
   } else {
-    let docker_api_host = process.env.CBA_API_HOST
-    let docker_api_port = process.env.CBA_API_PORT
+    const docker_api_host = process.env.CBA_API_HOST
+    const docker_api_port = process.env.CBA_API_PORT
 
     proxy_target = 'http://' + docker_api_host + ':' + docker_api_port + '/'
   }
 
   return {
-    '/api/': {target: proxy_target, pathRewrite: {'^/api/': ''}}
+    '/api/': { target: proxy_target, pathRewrite: { '^/api/': '' } }
   }
 }
 
@@ -21,12 +20,12 @@ export default {
   head: {
     title: 'cba_webapp',
     meta: [
-      {charset: 'utf-8'},
-      {name: 'viewport', content: 'width=device-width, initial-scale=1'},
-      {hid: 'description', name: 'description', content: ''}
+      { charset: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { hid: 'description', name: 'description', content: '' }
     ],
     link: [
-      {rel: 'icon', type: 'image/x-icon', href: '/favicon.ico'}
+      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
     ]
   },
 
@@ -77,5 +76,9 @@ export default {
     port: 3000, // default: 3000
     host: '0.0.0.0', // default: localhost,
     timing: false
+  },
+
+  router: {
+    base: process.env.CBA_CONTEXT_PATH
   }
 }
