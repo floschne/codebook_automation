@@ -26,6 +26,7 @@ class Trainer(object):
     _singleton = None
     # TODO persist in redis or similar
     _status_dict: Dict[str, TrainingStatus] = None
+    _active_pids: Dict[int, str] = None
     _manager: Manager = None
 
     def __new__(cls, *args, **kwargs):
@@ -44,7 +45,9 @@ class Trainer(object):
 
             cls._singleton = super(Trainer, cls).__new__(cls)
             cls._manager = Manager()
+            # TODO persist those dicts in redis or similar
             cls._status_dict = cls._manager.dict()
+            cls._active_pids = cls._manager.dict()
 
         return cls._singleton
 
@@ -56,6 +59,7 @@ class Trainer(object):
     def train(request: TrainingRequest) -> TrainingResponse:
         # TODO
         #  - how to assign GPU(s)
+        #  - set max number of active processes implement a job queue
 
         # remove model if another with same version exists!
         if ModelManager.model_is_available(request.cb, request.model_version):
@@ -63,10 +67,8 @@ class Trainer(object):
             DataHandler.remove_model(request.cb, request.model_version)
 
         with Manager() as manager:
-            status_dict = manager.dict()
-
             backend_logger.info(f"Spawning new process for train-eval-export cycle for Codebook <{request.cb.name}>")
-            p = Process(target=train_eval_export, args=(request, Trainer._status_dict,))
+            p = Process(target=train_eval_export, args=(request, Trainer._status_dict, Trainer._active_pids))
             p.start()
 
         model_id = ModelFactory.get_model_id(req=request)
@@ -79,7 +81,14 @@ class Trainer(object):
     @staticmethod
     def get_train_status(resp: TrainingResponse) -> Optional[TrainingStatus]:
         try:
-            return Trainer._status_dict[resp.model_id]
+            status = Trainer._status_dict[resp.model_id]
+
+            # TODO just a quick fix.
+            if resp.model_id not in Trainer._active_pids.values():
+                status.process_status = 'finished'
+
+            return status
+
         except Exception:
             return None
 
@@ -108,8 +117,8 @@ class Trainer(object):
 
 """
 The following methods are outside of the class because they have to be pickled for multi-processing and pickling 
-methods of classes is not trivial.. (have to be specially registered to the python interpreted and custom pickling 
-functions have to be implemented.
+methods of classes is not trivial.. (they have to be specially registered to the python interpreter and custom pickling 
+functions have to be implemented.)
 """
 
 
@@ -157,10 +166,12 @@ def update_training_status(status_dict: Dict[str, TrainingStatus], mid: str, sta
 
 
 @logger.catch
-def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatus]):
-    # TODO use redis or similar to persist this dict
+def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatus], active_pids: Dict[int, str]):
+    # TODO use redis or similar to persist status and logs etc
     mid = ModelFactory.get_model_id(req)
     proc = multiprocessing.current_process()
+    # add pid to active pids
+    active_pids[proc.pid] = mid
     backend_logger.info(f"Started train-eval-export cycle process with PID <{str(proc.pid)}>")
 
     # init training status
@@ -170,7 +181,6 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
     # intercept logs to loguru sink
     intercept_handler = LoggingInterceptHandler()
     try:
-
         update_training_status(status_dict, mid, TrainingState.preparing, proc.pid)
 
         # create log file
@@ -238,6 +248,9 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         update_training_status(status_dict, mid, TrainingState.error, proc.pid)
         raise e
     finally:
+        # remove pid from active pids
+        active_pids.pop(proc.pid, None)
+        # remove logging intercept handlers
         tf.get_logger().removeHandler(intercept_handler)
         backend_logger.removeHandler(intercept_handler)
 
