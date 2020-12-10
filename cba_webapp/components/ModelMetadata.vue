@@ -48,7 +48,7 @@ export default {
       }
       try {
         this.reset()
-        const resp = await this.$axios.post(`/api/model/get_metadata/?=model_version=${modelFormData.version}`, {
+        const resp = await this.$axios.post(`/api/model/get_metadata/?model_version=${modelFormData.version}`, {
           name: modelFormData.name,
           tags: modelFormData.tags
         }, config)
