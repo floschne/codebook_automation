@@ -2,18 +2,18 @@
   <header>
     <b-navbar toggleable="md" type="dark" variant="dark" fixed="top">
       <b-navbar-brand to="/">
-        CBA WebApp
+        Codebook Automation WebApp
       </b-navbar-brand>
 
       <b-navbar-toggle target="nav-collapse" />
 
       <b-collapse id="nav-collapse" is-nav>
         <b-navbar-nav>
-          <b-nav-item to="/model">
-            Model
-          </b-nav-item>
           <b-nav-item to="/training">
             Training
+          </b-nav-item>
+          <b-nav-item to="/model">
+            Model
           </b-nav-item>
           <b-nav-item to="/prediction">
             Prediction
