@@ -8,7 +8,7 @@ import tensorflow as tf
 from api.model import DocumentModel, PredictionResult, MultiDocumentPredictionResult, PredictionRequest, \
     MultiDocumentPredictionRequest, TagLabelMapping, CodebookModel
 from logger import backend_logger
-from .exceptions import ErroneousModelException, ErroneousMappingException, PredictionError
+from .exceptions import ErroneousModelException, ErroneousMappingException, PredictionError, ModelNotAvailableException
 from .model_manager import ModelManager
 
 
@@ -41,6 +41,9 @@ class Predictor(object):
 
     def predict(self, req: Union[PredictionRequest, MultiDocumentPredictionRequest]) -> \
             Union[PredictionResult, MultiDocumentPredictionResult]:
+
+        if not ModelManager.model_is_available(req.codebook, req.model_version):
+            raise ModelNotAvailableException(cb=req.codebook, model_version=req.model_version)
 
         def p_single(r: PredictionRequest, q: Queue):
             try:
