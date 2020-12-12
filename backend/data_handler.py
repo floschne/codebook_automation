@@ -17,7 +17,7 @@ from .exceptions import NoDataForCodebookException
 
 class DataHandler(object):
     _singleton = None
-    _DATA_BASE_PATH: Path = None
+    _DATA_ROOT: Path = None
     _relative_dataset_directory: Path = Path("dataset/")
     _relative_model_directory: Path = Path("model/")
 
@@ -32,11 +32,11 @@ class DataHandler(object):
             env_var = os.getenv(env_var, None)
             assert env_var is not None and env_var != "", "DATA_BASE_PATH environment variable not set!"
             env_var = env_var.strip()
-            cls._DATA_BASE_PATH = Path(env_var)
+            cls._DATA_ROOT = Path(env_var)
 
             # create the BASE_PATH if it doesn't exist
-            if not cls._DATA_BASE_PATH.exists():
-                cls._DATA_BASE_PATH.mkdir(parents=True)
+            if not cls._DATA_ROOT.exists():
+                cls._DATA_ROOT.mkdir(parents=True)
 
         return cls._singleton
 
@@ -122,7 +122,7 @@ class DataHandler(object):
     @staticmethod
     def _get_data_directory(cb: CodebookModel, create: bool = False) -> Path:
         data_handle = DataHandler.get_data_handle(cb)
-        data_directory = Path(DataHandler._DATA_BASE_PATH, data_handle)
+        data_directory = Path(DataHandler._DATA_ROOT, data_handle)
         if create:
             data_directory.mkdir(exist_ok=True, parents=True)
         if not data_directory.is_dir():
@@ -131,7 +131,7 @@ class DataHandler(object):
 
     @staticmethod
     def _get_data_dir_from_handle(cb_data_handle: str) -> Path:
-        data_directory = Path(DataHandler._DATA_BASE_PATH, cb_data_handle)
+        data_directory = Path(DataHandler._DATA_ROOT, cb_data_handle)
         assert data_directory.is_dir()
         return data_directory
 

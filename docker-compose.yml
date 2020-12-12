@@ -7,7 +7,7 @@ services:
     volumes:
       - ./data:/data
     environment:
-      - DATA_BASE_PATH=/data
+      - DATA_ROOT=/data
     ports:
       - "${CBA_API_EXPOSED_PORT}:80"
 
@@ -17,3 +17,4 @@ services:
       - cba_api
     ports:
       - "${CBA_APP_EXPOSED_PORT}:3000"
+

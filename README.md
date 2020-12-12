@@ -14,7 +14,7 @@ Coming soon...
 _Assuming that your in the root folder of this repository_
 ```
 pip install -r requirements.txt
-DATA_BASE_PATH=/your/custom/data/path uvicorn main:app --host 0.0.0.0 --port 8081
+DATA_ROOT=/your/custom/data/path uvicorn main:app --host 0.0.0.0 --port 8081
 ```
 
 
@@ -37,5 +37,5 @@ _Assuming that_
  - _$PWD is root folder of this repository_
  - _config.backend.data_base_path_env_var == "DATA_BASE_PATH"_
 ```
-PYTHONPATH=${PWD} DATA_BASE_PATH=/your/custom/data/path pytest
+PYTHONPATH=${PWD} DATA_ROOT=/your/custom/data/path pytest
 ```
