@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import shutil
@@ -40,20 +39,6 @@ class DataHandler(object):
 
         return cls._singleton
 
-    # noinspection GrazieInspection
-    @staticmethod
-    def get_data_handle(cb: CodebookModel) -> str:
-        """
-        Computes the data handle for the given Codebook by MD5-hashing it's JSON representation (after sorting tags)
-        and adding its lowercase name as a prefix Note that this is just an identifier / handle that does not guarantee
-        that data for the Codebook exists.
-
-        :param cb: The codebook model!
-        :return: The data handle as a string
-        """
-        cb.tags.sort()
-        return cb.name.lower() + "_" + hashlib.md5(cb.json().encode('utf-8')).hexdigest()
-
     @staticmethod
     def get_model_directory(cb: CodebookModel, model_version: str = "default", create: bool = False) -> Path:
         model_version = "default" if model_version is None or model_version == "" else model_version
@@ -67,10 +52,10 @@ class DataHandler(object):
         return model_dir
 
     @staticmethod
-    def get_model_dir_from_handle(cb_data_handle: str, model_version: str = "default", create: bool = False) -> Path:
+    def get_model_dir_from_id(cb_id: str, model_version: str = "default", create: bool = False) -> Path:
         model_version = "default" if model_version is None or model_version == "" else model_version
         # TODO exception if data dir not available
-        model_dir = DataHandler._get_data_dir_from_handle(cb_data_handle=cb_data_handle).joinpath(
+        model_dir = DataHandler._get_data_dir_from_id(cb_id=cb_id).joinpath(
             DataHandler._relative_model_directory).joinpath(model_version)
         if create:
             model_dir.mkdir(exist_ok=True, parents=True)
@@ -121,8 +106,7 @@ class DataHandler(object):
 
     @staticmethod
     def _get_data_directory(cb: CodebookModel, create: bool = False) -> Path:
-        data_handle = DataHandler.get_data_handle(cb)
-        data_directory = Path(DataHandler._DATA_ROOT, data_handle)
+        data_directory = Path(DataHandler._DATA_ROOT, cb._id)
         if create:
             data_directory.mkdir(exist_ok=True, parents=True)
         if not data_directory.is_dir():
@@ -130,8 +114,8 @@ class DataHandler(object):
         return data_directory
 
     @staticmethod
-    def _get_data_dir_from_handle(cb_data_handle: str) -> Path:
-        data_directory = Path(DataHandler._DATA_ROOT, cb_data_handle)
+    def _get_data_dir_from_id(cb_id: str) -> Path:
+        data_directory = Path(DataHandler._DATA_ROOT, cb_id)
         assert data_directory.is_dir()
         return data_directory
 

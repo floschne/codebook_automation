@@ -98,16 +98,16 @@ class ModelFactory(object):
 
     @staticmethod
     def get_model_id(req: TrainingRequest) -> str:
-        mid = DataHandler.get_data_handle(cb=req.cb) + "_m_" + req.model_version + "_d_" + req.dataset_version
+        mid = req.cb._id + "_m_" + req.model_version + "_d_" + req.dataset_version
         assert ModelFactory.is_valid_model_id(mid)
         return mid
 
     @staticmethod
     def get_model_dir(model_id: str, create: bool = False) -> Path:
         model_info = ModelFactory.parse_model_id(model_id)
-        return DataHandler.get_model_dir_from_handle(cb_data_handle=model_info['cb_data_handle'],
-                                                     model_version=model_info['model_version'],
-                                                     create=create)
+        return DataHandler.get_model_dir_from_id(cb_id=model_info['cb_id'],
+                                                 model_version=model_info['model_version'],
+                                                 create=create)
 
     @staticmethod
     def get_training_log_file(model_id: str, create: bool = True) -> Path:
@@ -130,7 +130,6 @@ class ModelFactory(object):
     @staticmethod
     def is_valid_model_id(model_id: str) -> bool:
         # name_hash_m_modelVersion_d_datasetVersion
-        # TODO create own class for data handle
         model_id_pattern = re.compile(r"[a-z0-9]+_[a-f0-9]{32}_m_[A-za-z0-9]+_d_[A-za-z0-9]+")
         if not model_id_pattern.match(model_id):
             raise InvalidModelIdException(model_id)
@@ -141,9 +140,8 @@ class ModelFactory(object):
     def parse_model_id(model_id: str) -> Dict[str, str]:
         assert ModelFactory.is_valid_model_id(model_id)
         data = model_id.split("_")
-        # TODO create own class for data handle
         return {
-            'cb_data_handle': data[0]+"_"+data[1],
+            'cb_id': data[0]+"_"+data[1],
             'model_version': data[3],
             'dataset_version': data[5]
         }
