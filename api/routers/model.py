@@ -15,14 +15,14 @@ router = APIRouter()
 async def is_available(cb: CodebookModel, model_version: Optional[str] = "default"):
     api_logger.info(
         f"POST request on {PREFIX}/is_available with model version '{model_version}'for Codebook {cb.json()}")
-    return BooleanResponse(value=ModelManager.model_is_available(cb=cb, model_version=model_version))
+    return BooleanResponse(value=ModelManager.is_available(cb=cb, model_version=model_version))
 
 
 @router.post("/get_metadata/", response_model=ModelMetadata, tags=["model"])
 async def get_metadata(cb: CodebookModel, model_version: Optional[str] = "default"):
     api_logger.info(
         f"POST request on {PREFIX}/get_metadata with model version '{model_version}'for Codebook {cb.json()}")
-    return ModelManager.load_model_metadata(cb, model_version=model_version)
+    return ModelManager.load_metadata(cb, model_version=model_version)
 
 
 @router.put("/upload_for_codebook/", response_model=StringResponse, tags=["model"])
@@ -39,6 +39,13 @@ async def upload_for_codebook(codebook_name: str = Form(..., description="The na
     model_version = "default" if model_version is None or model_archive == "" else model_version
 
     api_logger.info(
-        f"POST request on {PREFIX}/upload_for_codebook with model version '{model_version}'for Codebook {cb.json()}")
+        f"PUT request on {PREFIX}/upload_for_codebook with model version '{model_version}'for Codebook {cb.json()}")
 
     return StringResponse(value=ModelManager.store_uploaded_model(cb, model_version, model_archive))
+
+
+@router.delete("/remove/", response_model=BooleanResponse, tags=['model'])
+async def remove(cb: CodebookModel, model_version: Optional[str] = "default"):
+    api_logger.info(
+        f"DELETE request on {PREFIX}/remove with model version '{model_version}'for Codebook {cb.json()}")
+    return BooleanResponse(value=ModelManager.remove(cb=cb, model_version=model_version))

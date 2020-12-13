@@ -11,14 +11,13 @@ from typing import Dict, Optional
 
 import psutil
 import tensorflow as tf
-from fastapi import UploadFile
 from loguru import logger
 
-from api.model import CodebookModel, TrainingResponse, TrainingRequest, TrainingState, TrainingStatus, ModelMetadata
+from api.model import TrainingResponse, TrainingRequest, TrainingState, TrainingStatus, ModelMetadata
 from logger import backend_logger
 from .model_factory import ModelFactory
-from ..data_handler import DataHandler
-from ..exceptions import ErroneousDatasetException
+from .. import DataHandler
+from ..dataset_manager import DatasetManager
 from ..model_manager import ModelManager
 
 
@@ -62,21 +61,29 @@ class Trainer(object):
         #  - set max number of active processes implement a job queue
 
         # remove model if another with same version exists!
-        if ModelManager.model_is_available(request.cb, request.model_version):
+        if ModelManager.is_available(request.cb, request.model_version):
             backend_logger.warning(f"Model {request.model_version} for Codebook '{request.cb.name}' already exists!")
-            DataHandler.remove_model(request.cb, request.model_version)
+            ModelManager.remove(cb=request.cb, model_version=request.model_version)
 
         with Manager() as manager:
             backend_logger.info(f"Spawning new process for train-eval-export cycle for Codebook <{request.cb.name}>")
             p = Process(target=train_eval_export, args=(request, Trainer._status_dict, Trainer._active_pids))
             p.start()
 
-        model_id = ModelFactory.get_model_id(req=request)
+        model_id = ModelManager.get_model_id(request.cb, request.model_version, request.dataset_version)
         return TrainingResponse(model_id=model_id)
 
     @staticmethod
-    def get_train_log(resp: TrainingResponse) -> Path:
-        return ModelFactory.get_training_log_file(resp.model_id)
+    def get_training_log(resp: TrainingResponse, create: bool = False) -> Path:
+        # TODO change method signature
+        cb_id, model_version, _ = ModelManager.parse_model_id(resp.model_id)
+        model_dir = DataHandler.get_model_dir_from_id(cb_id=cb_id, model_version=model_version, create=create)
+        log_path = model_dir.joinpath("training.log")
+        if create:
+            log_path.touch()
+        # TODO throw exception
+        assert log_path.exists(), f"Log File not found at {log_path}"
+        return log_path
 
     @staticmethod
     def get_train_status(resp: TrainingResponse) -> Optional[TrainingStatus]:
@@ -92,28 +99,6 @@ class Trainer(object):
         except Exception:
             return None
 
-    @staticmethod
-    @logger.catch
-    def dataset_is_available(cb: CodebookModel, dataset_version: str) -> bool:
-        return ModelFactory.dataset_is_available(cb, dataset_version=dataset_version)
-
-    @staticmethod
-    def store_uploaded_dataset(cb: CodebookModel, dataset_version: str, dataset_archive: UploadFile) -> bool:
-        backend_logger.info(f"Successfully received dataset archive for Codebook {cb.name}")
-
-        try:
-            path = DataHandler.store_dataset(cb=cb, dataset_archive=dataset_archive, dataset_version=dataset_version)
-        except Exception as e:
-            raise ErroneousDatasetException(dataset_version, cb,
-                                            f"Error while persisting dataset for Codebook {cb.name}!",
-                                            caused_by=str(e))
-        if not ModelFactory.dataset_is_available(cb, dataset_version=dataset_version):
-            raise ErroneousDatasetException(dataset_version, cb,
-                                            f"Error while persisting dataset for Codebook {cb.name} under {str(path)}")
-        backend_logger.info(
-            f"Successfully persisted dataset '{dataset_version}' for Codebook <{cb.name}> under {str(path)}")
-        return True
-
 
 """
 The following methods are outside of the class because they have to be pickled for multi-processing and pickling 
@@ -127,7 +112,7 @@ def input_fn(r: TrainingRequest, train: bool = False):
     # https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator#eager_compatibility
 
     # create tf datasets (we have to load them in the input fn otherwise we get an EagerExecution problem)
-    train_ds, test_ds, label_categories = ModelFactory.create_datasets(r.cb, r.dataset_version)
+    train_ds, test_ds, label_categories = DatasetManager.get_tensorflow_dataset(r.cb, r.dataset_version)
     if train:
         train_ds = train_ds.shuffle(256).batch(r.batch_size_train).repeat()
         return train_ds
@@ -138,7 +123,9 @@ def input_fn(r: TrainingRequest, train: bool = False):
 
 def generate_model_metadata(r: TrainingRequest, model_id: str, eval_results: Dict[str, float]) -> Path:
     backend_logger.info(f"Generating model metadata file for model<{model_id}>")
-    label_categories = ModelFactory.create_datasets(r.cb, r.dataset_version, get_labels_only=True)
+    label_categories = DatasetManager.get_tensorflow_dataset(r.cb, r.dataset_version, get_labels_only=True)
+
+    # TODO store metadata in redis
 
     metadata = ModelMetadata(
         labels=dict(enumerate(label_categories)),
@@ -149,7 +136,7 @@ def generate_model_metadata(r: TrainingRequest, model_id: str, eval_results: Dic
     )
 
     # persist
-    metadata_dst = ModelFactory.get_metadata_file(model_id)
+    metadata_dst = ModelManager.get_metadata_path(model_id)
     with open(metadata_dst, 'w') as fp:
         print(metadata.json(), file=fp)
     assert metadata_dst.exists()
@@ -168,7 +155,7 @@ def update_training_status(status_dict: Dict[str, TrainingStatus], mid: str, sta
 @logger.catch
 def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatus], active_pids: Dict[int, str]):
     # TODO use redis or similar to persist status and logs etc
-    mid = ModelFactory.get_model_id(req)
+    mid = ModelManager.get_model_id(req.cb, req.model_version, req.dataset_version)
     proc = multiprocessing.current_process()
     # add pid to active pids
     active_pids[proc.pid] = mid
@@ -184,7 +171,7 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         update_training_status(status_dict, mid, TrainingState.preparing, proc.pid)
 
         # create log file
-        log_file = ModelFactory.get_training_log_file(mid, create=True)
+        log_file = Trainer.get_training_log(TrainingResponse(model_id=mid), create=True)
         backend_logger.info(f"Setting up logging for process with PID <{str(proc.pid)}> at <{str(log_file)}>")
         # create loguru sink
         logger.add(str(log_file), rotation="500 MB", enqueue=True)
@@ -192,7 +179,6 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         backend_logger.addHandler(intercept_handler)
 
         # create model
-        mid = ModelFactory.get_model_id(req)
         backend_logger.info(f"Building model <{req.model_version}> for Codebook <{req.cb.name}> with model config"
                             f"<{req.model_config}>. ModelID: <{mid}>")
         # TODO
@@ -214,7 +200,7 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         res_pp = pp.pformat(results)
         backend_logger.info(f"Evaluation results of model <{mid}>:\n {res_pp}")
 
-        # export # TODO this should be moved to DataHandler
+        # export # TODO this should be moved to ModelFactory
         backend_logger.info(f"Starting export of model <{mid}>")
         # updating training status
         update_training_status(status_dict, mid, TrainingState.training, proc.pid)
@@ -223,8 +209,8 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
             tf.feature_column.make_parse_example_spec([embedding_layer]))
         # create model meta data
         metadata_path = generate_model_metadata(r=req, model_id=mid, eval_results=results)
-        # finally, persist model
-        dst = ModelFactory.get_model_dir(model_id=mid)
+        # finally, persist model # TODO this should be moved to DataHandler
+        dst = DataHandler.get_model_directory(req.cb, req.model_version, create=True)
         estimator_path = model.export_saved_model(str(dst),
                                                   serving_input_fn,
                                                   assets_extra={'model_metadata.json': str(metadata_path)})
@@ -237,7 +223,7 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
             shutil.move(str(f), str(f.parent.parent))
 
         # TODO exception if fails
-        assert ModelManager.model_is_available(req.cb, req.model_version)
+        assert ModelManager.is_available(req.cb, req.model_version)
         backend_logger.info(f"Successfully exported model <{mid}> at {estimator_path}")
 
         backend_logger.info(f"Completed train-eval-export cycle for model <{mid}>")

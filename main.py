@@ -4,8 +4,8 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from api.routers import general, model, prediction, training
-from backend import DataHandler, ModelFactory, ModelManager, Predictor, Trainer
+from api.routers import general, model, prediction, training, dataset
+from backend import DataHandler, ModelFactory, ModelManager, Predictor, Trainer, DatasetManager
 from backend.exceptions import ModelNotAvailableException, ErroneousMappingException, ErroneousModelException, \
     ModelMetadataNotAvailableException, PredictionError, ModelInitializationException, ErroneousDatasetException, \
     NoDataForCodebookException, DatasetNotAvailableException, InvalidModelIdException
@@ -13,6 +13,7 @@ from logger import backend_logger
 
 # instantiate singletons
 DataHandler()
+DatasetManager()
 ModelFactory()
 ModelManager()
 Predictor()
@@ -31,6 +32,7 @@ def shutdown_event():
 
 # include the routers
 app.include_router(general.router)
+app.include_router(dataset.router, prefix=dataset.PREFIX)
 app.include_router(model.router, prefix=model.PREFIX)
 app.include_router(prediction.router, prefix=prediction.PREFIX)
 app.include_router(training.router, prefix=training.PREFIX)

@@ -1,4 +1,7 @@
 import json
+import re
+from pathlib import Path
+from typing import Tuple
 
 import tensorflow as tf
 from fastapi import UploadFile
@@ -7,7 +10,7 @@ from api.model import CodebookModel, ModelMetadata
 from logger import backend_logger
 from .data_handler import DataHandler
 from .exceptions import ErroneousModelException, ModelMetadataNotAvailableException, ModelNotAvailableException, \
-    NoDataForCodebookException
+    NoDataForCodebookException, InvalidModelIdException
 
 
 class ModelManager(object):
@@ -20,7 +23,7 @@ class ModelManager(object):
         return cls._singleton
 
     @staticmethod
-    def model_is_available(cb: CodebookModel, model_version: str = "default") -> bool:
+    def is_available(cb: CodebookModel, model_version: str = "default") -> bool:
         """
         Checks if the model for the given codebook is available
         :param cb: the codebook
@@ -34,7 +37,7 @@ class ModelManager(object):
             return False
 
     @staticmethod
-    def load_model(cb: CodebookModel, model_version: str = "default"):
+    def load(cb: CodebookModel, model_version: str = "default"):
         """
         Loads the Tensorflow Estimator model for the given Codebook
         :param cb: the codebook
@@ -50,7 +53,8 @@ class ModelManager(object):
         return estimator
 
     @staticmethod
-    def load_model_metadata(cb: CodebookModel, model_version: str = "default") -> ModelMetadata:
+    def load_metadata(cb: CodebookModel, model_version: str = "default") -> ModelMetadata:
+        # TODO merge with get_metadata_path()
         """
         Loads the metadata of a model for the given Codebook
         :param cb: the codebook
@@ -58,7 +62,8 @@ class ModelManager(object):
         :return: the metadata of the model for the given Codebook
         """
         # TODO
-        # - outsource model meta data path etc
+        #  - load from redis
+        #  - outsource model meta data path etc
         model_dir = DataHandler.get_model_directory(cb, model_version=model_version)
         meta_data_path = model_dir.joinpath("assets.extra", "model_metadata.json")
         try:
@@ -69,9 +74,20 @@ class ModelManager(object):
             raise ModelMetadataNotAvailableException(cb=cb, model_version="default")
 
     @staticmethod
+    def get_metadata_path(model_id: str, create: bool = False) -> Path:
+        # TODO redis
+        cb_id, model_version, _ = ModelManager.parse_model_id(model_id)
+        model_dir = DataHandler.get_model_dir_from_id(cb_id=cb_id,
+                                                      model_version=model_version,
+                                                      create=create)
+        metadata_path = model_dir.joinpath("metadata.json")
+        if create:
+            metadata_path.touch(exist_ok=True)
+        return metadata_path
+
+    @staticmethod
     def store_uploaded_model(cb: CodebookModel, model_version: str, model_archive: UploadFile) -> str:
-        # TODO
-        # - make sure that a valid TF model was extracted
+        # TODO register in redis
         # - create metadata for model or make sure it exists in the archive
         backend_logger.info(f"Successfully received model archive for Codebook {cb.name}")
         try:
@@ -79,9 +95,40 @@ class ModelManager(object):
         except Exception as e:
             raise ErroneousModelException(model_version, cb,
                                           f"Error while persisting model for Codebook {cb.name}!")
-        if not ModelManager.model_is_available(cb):
+        if not ModelManager.is_available(cb):
             raise ErroneousModelException(model_version, cb,
                                           f"Archive contains no valid model for Codebook {cb.name} under {path}!")
         backend_logger.info(
             f"Successfully persisted model '{model_version}' for Codebook <{cb.name}> under {path}!")
         return str(path)
+
+    @staticmethod
+    def remove(cb: CodebookModel, model_version: str):
+        # TODO unregister
+        backend_logger.info(f"Removing model '{model_version}' of Codebook {cb.name}")
+        DataHandler.purge_model_directory(cb, model_version)
+        return True
+
+    @staticmethod
+    def get_model_id(cb: CodebookModel, model_version: str = "default", dataset_version: str = "default") -> str:
+        mid = cb._id + "_m_" + model_version + "_d_" + dataset_version
+        assert ModelManager._is_valid_model_id(mid)
+        return mid
+
+    @staticmethod
+    def _is_valid_model_id(model_id: str) -> bool:
+        # name_hash_m_modelVersion_d_datasetVersion
+        model_id_pattern = re.compile(r"[a-z0-9]+_[a-f0-9]{32}_m_[A-za-z0-9]+_d_[A-za-z0-9]+")
+        if not model_id_pattern.match(model_id):
+            raise InvalidModelIdException(model_id)
+        else:
+            return True
+
+    @staticmethod
+    def parse_model_id(model_id: str) -> Tuple[str, str, str]:
+        assert ModelManager._is_valid_model_id(model_id)
+        data = model_id.split("_")
+        cb_id = data[0] + "_" + data[1]
+        model_version = data[3]
+        dataset_version = data[5]
+        return cb_id, model_version, dataset_version

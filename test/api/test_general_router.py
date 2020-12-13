@@ -1,6 +1,8 @@
 import os
 import sys
 
+from starlette import status
+
 sys.path.append(str(os.getcwd()))
 from fastapi.testclient import TestClient
 
@@ -12,5 +14,5 @@ client = TestClient(app)
 
 def test_heartbeat():
     response = client.get("/heartbeat")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == BooleanResponse(value=True)

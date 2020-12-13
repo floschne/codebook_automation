@@ -1,6 +1,6 @@
 from .boolean_response import BooleanResponse
 from .codebook_model import CodebookModel
-from .dataset_info_request import DatasetInfoRequest
+from .dataset_request import DatasetRequest
 from .document_model import DocumentModel
 from .model_config import ModelConfig, OptimizerIdentifier, ActivationFunctionIdentifier
 from .model_metadata import ModelMetadata
@@ -28,4 +28,4 @@ __all__ = [CodebookModel,
            ActivationFunctionIdentifier,
            TrainingState,
            TrainingStatus,
-           DatasetInfoRequest]
+           DatasetRequest]

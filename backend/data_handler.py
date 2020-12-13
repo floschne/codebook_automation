@@ -19,6 +19,7 @@ class DataHandler(object):
     _DATA_ROOT: Path = None
     _relative_dataset_directory: Path = Path("dataset/")
     _relative_model_directory: Path = Path("model/")
+    _redis = None
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
@@ -87,13 +88,6 @@ class DataHandler(object):
             model_archive.file.close()
 
     @staticmethod
-    def remove_model(cb: CodebookModel, model_version: str):
-        model_dir = DataHandler.get_model_directory(cb, model_version=model_version)
-        backend_logger.warning(f"Permanently removing model {model_version} of Codebook '{cb.name}'")
-        shutil.rmtree(model_dir)
-        pass
-
-    @staticmethod
     def get_dataset_directory(cb: CodebookModel, dataset_version: str = "default", create: bool = False) -> Path:
         data_directory = DataHandler._get_data_directory(cb, create).joinpath(
             DataHandler._relative_dataset_directory).joinpath(
@@ -132,3 +126,22 @@ class DataHandler(object):
         with open(dst, "wb") as buffer:
             shutil.copyfileobj(uploaded_file.file, buffer)
             return Path(dst)
+
+    @staticmethod
+    def purge_dataset_directory(cb: CodebookModel, dataset_version: str):
+        dataset_dir = DataHandler.get_dataset_directory(cb, dataset_version=dataset_version)
+        backend_logger.warning(f"Permanently removing dataset '{dataset_version}' of Codebook '{cb.name}'")
+        shutil.rmtree(dataset_dir)
+
+    @staticmethod
+    def purge_model_directory(cb: CodebookModel, model_version: str):
+        model_dir = DataHandler.get_model_directory(cb, model_version=model_version)
+        backend_logger.warning(f"Permanently removing data of model '{model_version}' of Codebook '{cb.name}'")
+        shutil.rmtree(model_dir)
+
+    @staticmethod
+    def _purge_data(cb: CodebookModel):
+        backend_logger.warning(
+            f"Permanently removing all data (including models and datasets) of Codebook <{cb.name}>!")
+        data_directory = Path(DataHandler._DATA_ROOT, cb._id)
+        shutil.rmtree(data_directory)

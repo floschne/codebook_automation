@@ -3,6 +3,6 @@ from pydantic import BaseModel
 from api.model import CodebookModel
 
 
-class DatasetInfoRequest(BaseModel):
+class DatasetRequest(BaseModel):
     cb: CodebookModel
-    dataset_version_tag: str
+    dataset_version: str

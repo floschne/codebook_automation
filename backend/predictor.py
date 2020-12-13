@@ -42,7 +42,7 @@ class Predictor(object):
     def predict(self, req: Union[PredictionRequest, MultiDocumentPredictionRequest]) -> \
             Union[PredictionResult, MultiDocumentPredictionResult]:
 
-        if not ModelManager.model_is_available(req.codebook, req.model_version):
+        if not ModelManager.is_available(req.codebook, req.model_version):
             raise ModelNotAvailableException(cb=req.codebook, model_version=req.model_version)
 
         def p_single(r: PredictionRequest, q: Queue):
@@ -52,7 +52,7 @@ class Predictor(object):
                 model_version = r.model_version
 
                 # load the model
-                model = ModelManager.load_model(cb, model_version=model_version)
+                model = ModelManager.load(cb, model_version=model_version)
                 # build the sample(s) for the doc
                 samples = self._build_tf_sample(doc)
                 # get predictions
@@ -74,7 +74,7 @@ class Predictor(object):
                 model_version = r.model_version
 
                 # load the model
-                model = ModelManager.load_model(cb, model_version=model_version)
+                model = ModelManager.load(cb, model_version=model_version)
                 # build the sample(s) for the doc
                 samples = [self._build_tf_sample(doc) for doc in docs]
                 # get predictions
