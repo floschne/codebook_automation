@@ -10,7 +10,7 @@ install:
 
 before_script:
   - export PYTHONPATH=$PYTHONPATH:$(pwd)
-  - export DATA_BASE_PATH=/tmp/codebook_automation/models/
+  - export DATA_ROOT=/tmp/codebook_automation/
 
 script:
   - pytest
