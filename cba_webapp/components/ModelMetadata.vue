@@ -1,18 +1,13 @@
 <template>
   <div>
-    <b-alert
-      variant="success"
-      class="text-center"
-      dismissible
-      :show="dismissCountdown"
-      @dismiss-count-down="countDownChanged"
-    >
-      Successfully retrieved model data!
-    </b-alert>
-
-    <b-alert v-model="err" variant="danger" show dismissible>
-      Cannot find Model!
-    </b-alert>
+    <div v-if="showAlarm">
+      <b-alert v-model="success" variant="success" class="text-center" dismissible>
+        Successfully retrieved model data!
+      </b-alert>
+      <b-alert v-model="error" variant="danger" dismissible>
+        Cannot find Model!
+      </b-alert>
+    </div>
     <b-row>
       <b-col :md="success ? 6 : 12">
         <ModelForm @model-form-submit="getModelMetadata" @model-form-reset="reset" />
@@ -34,46 +29,30 @@ export default {
   data () {
     return {
       success: Boolean(false),
-      err: Boolean(false),
-      dismissCountdown: Number(0),
+      showAlarm: Boolean(false),
       metaData: Object
+    }
+  },
+  computed: {
+    error: {
+      get () {
+        return !this.success
+      },
+      set (err) {
+        this.success = !err
+      }
     }
   },
   methods: {
     async getModelMetadata (modelFormData) {
-      const config = {
-        headers: {
-          Accept: 'application/json'
-        }
-      }
-      try {
-        this.reset()
-        const resp = await this.$axios.post(`/api/model/get_metadata/?model_version=${modelFormData.version}`, {
-          name: modelFormData.name,
-          tags: modelFormData.tags
-        }, config)
-
-        // TODO error handling if not 200
-        if (resp.status === 200) {
-          this.metaData = resp.data
-          this.success = true
-          this.dismissCountdown = 3
-        } else {
-          this.success = false
-          this.err = true
-        }
-      } catch (error) {
-        this.success = false
-        this.err = true
-      }
+      this.reset()
+      this.metaData = await this.$modelApiClient.metadata(modelFormData)
+      this.success = this.metaData !== null && this.metaData !== undefined
+      this.showAlarm = true
     },
     reset () {
       this.success = false
-      this.err = false
-      this.dismissCountdown = 0
-    },
-    countDownChanged (dismissCountDown) {
-      this.dismissCountdown = dismissCountDown
+      this.showAlarm = true
     }
   }
 }

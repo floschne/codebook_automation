@@ -1,13 +1,15 @@
 <template>
   <div class="container-fluid">
-    <b-row no-gutters>
-      <b-alert v-if="err" variant="danger" class="w-100" show dismissible>
+    <div v-if="showAlert">
+      <b-alert v-if="error" variant="danger" class="w-100" show dismissible>
         Couldn't find Model-Id!
       </b-alert>
+    </div>
+    <b-row no-gutters>
       <ModelIdForm @model-id-submit="getTrainingStatus" />
     </b-row>
     <b-row v-if="success">
-      <pre class="border border-dark rounded p-1"><code>{{ training_status }}</code></pre>
+      <pre class="border border-dark rounded p-1"><code>{{ trainingStatus }}</code></pre>
     </b-row>
   </div>
 </template>
@@ -20,42 +22,26 @@ export default {
   components: { ModelIdForm },
   data () {
     return {
-      training_status: null,
-      model_id: '',
-      success: false,
-      err: false
+      trainingStatus: null,
+      success: Boolean(false),
+      showAlert: Boolean(false)
+    }
+  },
+  computed: {
+    error: {
+      get () {
+        return !this.success
+      },
+      set (err) {
+        this.success = !err
+      }
     }
   },
   methods: {
     async getTrainingStatus (modelId) {
-      this.model_id = modelId
-      const config = {
-        headers: {
-          Accept: 'application/json'
-        }
-      }
-      try {
-        const resp = await this.$axios.post('/api/training/get_training_status/', {
-          model_id: this.model_id
-        }, config)
-
-        // TODO error handling if not 200
-        if (resp.status === 200) {
-          this.training_status = resp.data
-          this.success = true
-          this.err = false
-        } else {
-          this.training_status = null
-          this.success = false
-          this.err = true
-        }
-        console.log(resp)
-      } catch (err) {
-        console.error(err)
-        this.success = false
-        this.training_status = null
-        this.err = true
-      }
+      this.trainingStatus = await this.$trainingApiClient.getStatus(modelId)
+      this.success = this.trainingStatus !== null && this.trainingStatus !== undefined
+      this.showAlert = true
     }
   }
 }

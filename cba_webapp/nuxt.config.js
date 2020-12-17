@@ -1,17 +1,17 @@
 const proxyConfig = () => {
-  let proxy_target = ''
+  let proxyTarget = ''
 
   if (process.env.CBA_DEPLOY === 'local') {
-    proxy_target = 'http://localhost:8081/'
+    proxyTarget = 'http://localhost:8081/'
   } else {
-    const docker_api_host = process.env.CBA_API_HOST
-    const docker_api_port = process.env.CBA_API_PORT
+    const dockerApiHost = process.env.CBA_API_HOST
+    const dockerApiPort = process.env.CBA_API_PORT
 
-    proxy_target = 'http://' + docker_api_host + ':' + docker_api_port + '/'
+    proxyTarget = 'http://' + dockerApiHost + ':' + dockerApiPort + '/'
   }
 
   return {
-    '/api/': { target: proxy_target, pathRewrite: { '^/api/': '' } }
+    '/api/': { target: proxyTarget, pathRewrite: { '^/api/': '' } }
   }
 }
 
@@ -33,7 +33,13 @@ export default {
   css: [],
 
   // Plugins to run before rendering page (https://go.nuxtjs.dev/config-plugins)
-  plugins: [],
+  plugins: [
+    '@/plugins/generalApiClient.js',
+    '@/plugins/datasetApiClient.js',
+    '@/plugins/modelApiClient.js',
+    '@/plugins/trainingApiClient.js',
+    '@/plugins/predictionApiClient.js'
+  ],
 
   // Auto import components (https://go.nuxtjs.dev/config-components)
   components: true,

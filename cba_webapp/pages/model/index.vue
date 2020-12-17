@@ -1,7 +1,7 @@
 <template>
   <b-card no-body class="h-100">
     <b-tabs card class="p-0">
-      <b-tab title="Inspect" active>
+      <b-tab title="Metadata" active>
         <ModelMetadata />
       </b-tab>
       <b-tab title="Upload">

@@ -1,11 +1,13 @@
 <template>
   <div>
-    <b-alert v-model="success" variant="success" show dismissible>
-      Successfully uploaded dataset!
-    </b-alert>
-    <b-alert v-model="err" variant="danger" show dismissible>
-      Couldn't find Model!
-    </b-alert>
+    <b-row v-if="showAlarm">
+      <b-alert v-model="success" variant="success" dismissible>
+        Successfully uploaded model! ModelId: {{ this.modelId }}
+      </b-alert>
+      <b-alert v-model="error" variant="danger" dismissible>
+        Couldn't upload Model!
+      </b-alert>
+    </b-row>
     <b-row no-gutters>
       <ModelForm :show-model-upload="true" @model-form-submit="uploadModel" @model-form-reset="reset" />
     </b-row>
@@ -20,37 +22,30 @@ export default {
   components: { ModelForm },
   data () {
     return {
+      modelId: String(''),
       success: Boolean(false),
-      err: Boolean(false)
+      showAlarm: Boolean(false)
+    }
+  },
+  computed: {
+    error: {
+      get () {
+        return !this.success
+      },
+      set (err) {
+        this.success = !err
+      }
     }
   },
   methods: {
     async uploadModel (modelFormData) {
-      // upload file
-      const formData = new FormData()
-      formData.append('codebook_name', modelFormData.name)
-      formData.append('codebook_tag_list', modelFormData.tags)
-      formData.append('model_version', modelFormData.version)
-      formData.append('model_archive', modelFormData.archive, modelFormData.archive.name)
-
-      const config = {
-        headers: {
-          Accept: 'application/json',
-          'content-type': 'multipart/form-data'
-        }
-      }
-      try {
-        const resp = await this.$axios.put('/api/model/upload_for_codebook/', formData, config)
-        if (resp.status === 200) { this.success = true } else { this.err = true }
-        // TODO handle http 500 etc
-      } catch (error) {
-        this.err = true
-        console.error(error)
-      }
+      this.modelId = await this.$modelApiClient.upload(modelFormData)
+      this.success = this.modelId !== null
+      this.showAlarm = true
     },
     reset () {
       this.success = false
-      this.error = false
+      this.showAlarm = false
     }
   }
 }

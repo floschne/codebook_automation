@@ -24,7 +24,7 @@
         </b-navbar-nav>
 
         <b-navbar-nav class="ml-auto">
-          <HeartbeatCheck />
+          <HeartbeatCheckButton />
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
@@ -32,10 +32,10 @@
 </template>
 
 <script>
-import HeartbeatCheck from '@/components/HeartbeatCheck'
+import HeartbeatCheckButton from '@/components/HeartbeatCheckButton'
 export default {
   name: 'AppHeader',
-  components: { HeartbeatCheck }
+  components: { HeartbeatCheckButton }
 }
 </script>
 

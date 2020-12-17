@@ -10,8 +10,8 @@
 
 <script>
 export default {
-  name: 'HeartbeatCheck',
-  emits: ['api-dead'],
+  name: 'HeartbeatCheckButton',
+  emits: ['api-dead'], // TODO use this event by hiding all functionality that requires the API
   data () {
     return {
       heartbeat: Boolean(false)
@@ -23,18 +23,7 @@ export default {
   methods: {
     async checkHeartbeat (evt) {
       if (evt !== undefined) { evt.preventDefault() }
-      const config = {
-        headers: {
-          Accept: 'application/json'
-        }
-      }
-      try {
-        const resp = await this.$axios.get('/api/heartbeat', config)
-        if (resp.status === 200) { this.heartbeat = resp.data.value } else { this.heartbeat = false }
-        console.info(`API Heartbeat: ${this.heartbeat}`)
-      } catch (error) {
-        console.error(error)
-      }
+      this.heartbeat = await this.$generalApiClient.heartbeat()
     }
   }
 }
