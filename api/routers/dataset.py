@@ -24,7 +24,7 @@ async def upload(codebook_name: str = Form(..., description="The name of the Cod
     return BooleanResponse(value=DatasetManager.store_archive(cbm, dataset_version, dataset_archive))
 
 
-@router.post("/is_available/", response_model=BooleanResponse, tags=["dataset"])
+@router.post("/available/", response_model=BooleanResponse, tags=["dataset"])
 async def is_available(req: DatasetRequest):
     api_logger.info(f"POST request on  {PREFIX}/is_available/ with DatasetRequest {req}")
     return BooleanResponse(value=DatasetManager.is_available(req))

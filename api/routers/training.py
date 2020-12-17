@@ -16,7 +16,7 @@ async def train(req: TrainingRequest):
     return Trainer.train(req)
 
 
-@router.post("/get_train_log/", tags=["training"])
+@router.post("/log/", tags=["training"])
 async def get_train_log(resp: TrainingResponse):
     api_logger.info(f"POST request on  {PREFIX}/get_train_log/ with TrainingResponse {resp}")
     log_path = Trainer.get_training_log(resp)
@@ -24,7 +24,7 @@ async def get_train_log(resp: TrainingResponse):
     return StreamingResponse(file_like, media_type="text/plain")
 
 
-@router.post("/get_training_status/", response_model=TrainingStatus, tags=["training"])
+@router.post("/status/", response_model=TrainingStatus, tags=["training"])
 async def get_training_status(resp: TrainingResponse):
     api_logger.info(f"POST request on  {PREFIX}/get_training_status/ with TrainingResponse {resp}")
     status = Trainer.get_train_status(resp)
