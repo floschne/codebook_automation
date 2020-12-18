@@ -6,7 +6,7 @@ sys.path.append(str(os.getcwd()))
 from test.utils import create_dummy_codebook_models
 
 
-def test_codebook_model_id():
+def test_codebook_dto_id():
     cb1, cb2 = create_dummy_codebook_models(2)
 
     cb1_id = cb1.id

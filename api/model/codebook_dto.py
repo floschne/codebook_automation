@@ -1,4 +1,5 @@
 import hashlib
+import json
 from typing import List
 
 from pydantic import BaseModel
@@ -16,4 +17,5 @@ class CodebookDTO(BaseModel):
         that data for the Codebook exists.
         :return: The ID as a string
         """
+        self.tags.sort()
         return self.name.lower() + "_" + hashlib.md5(self.json().encode('utf-8')).hexdigest()
