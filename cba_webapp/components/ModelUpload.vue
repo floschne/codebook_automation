@@ -1,10 +1,10 @@
 <template>
   <div>
     <b-row v-if="showAlarm">
-      <b-alert v-model="success" variant="success" dismissible>
+      <b-alert v-model="success" variant="success">
         Successfully uploaded model! ModelId: {{ this.modelId }}
       </b-alert>
-      <b-alert v-model="error" variant="danger" dismissible>
+      <b-alert v-model="error" variant="danger">
         Couldn't upload Model!
       </b-alert>
     </b-row>

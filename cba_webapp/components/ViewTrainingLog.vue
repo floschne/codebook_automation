@@ -1,12 +1,14 @@
 <template>
   <div class="container-fluid">
     <b-row no-gutters>
-      <b-alert v-if="error" variant="danger" class="w-100" show dismissible>
-        Couldn't find Model-Id!
-      </b-alert>
+      <div v-if="showAlert">
+        <b-alert v-model="error" variant="danger" class="w-100">
+          Couldn't find Model-Id!
+        </b-alert>
+      </div>
       <ModelIdForm @model-id-submit="getTrainingLog" />
     </b-row>
-    <b-row v-if="success">
+    <b-row v-if="success && trainingLog !== null">
       <prism-editor
         v-model="trainingLog"
         class="border border-danger rounded train-log-editor"
@@ -37,7 +39,8 @@ export default {
   },
   data () {
     return {
-      success: false,
+      success: Boolean(false),
+      showAlert: Boolean(false),
       trainingLog: null
     }
   },
@@ -47,7 +50,7 @@ export default {
         return !this.success
       },
       set (err) {
-        this.success = !err
+        this.error = err
       }
     }
   },
@@ -55,9 +58,10 @@ export default {
     highlighter (code) {
       return highlight(code, languages.json, 'json')
     },
-    getTrainingLog (modelId) {
-      this.trainingLog = this.$trainingApiClient.getLog(modelId)
+    async getTrainingLog (modelId) {
+      this.trainingLog = await this.$trainingApiClient.getLog(modelId)
       this.success = this.trainingLog !== null
+      this.showAlert = true
     }
   }
 }

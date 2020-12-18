@@ -1,11 +1,13 @@
 <template>
   <div>
-    <b-alert v-model="success" variant="success" show dismissible>
-      Successfully uploaded dataset!
-    </b-alert>
-    <b-alert v-model="error" variant="danger" show dismissible>
-      Couldn't upload dataset!
-    </b-alert>
+    <div v-if="showAlert">
+      <b-alert v-model="success" variant="success">
+        Successfully uploaded dataset!
+      </b-alert>
+      <b-alert v-model="error" variant="danger">
+        Couldn't upload dataset!
+      </b-alert>
+    </div>
     <ModelForm :show-dataset-upload="true" @model-form-submit="uploadDataset" @model-form-reset="reset" />
   </div>
 </template>
@@ -18,7 +20,8 @@ export default {
   components: { ModelForm },
   data () {
     return {
-      success: Boolean(false)
+      success: Boolean(false),
+      showAlert: Boolean(false)
     }
   },
   computed: {
@@ -32,11 +35,13 @@ export default {
     }
   },
   methods: {
-    uploadDataset (modelFormData) {
-      this.success = this.$datasetApiClient.upload(modelFormData)
+    async uploadDataset (modelFormData) {
+      this.success = await this.$datasetApiClient.upload(modelFormData)
+      this.showAlert = true
     },
     reset () {
       this.success = false
+      this.showAlert = false
     }
   }
 }

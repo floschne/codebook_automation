@@ -1,10 +1,10 @@
 <template>
   <div>
     <div v-if="showAlarm">
-      <b-alert v-model="success" variant="success" class="text-center" dismissible>
+      <b-alert v-model="success" variant="success" class="text-center">
         Successfully retrieved model data!
       </b-alert>
-      <b-alert v-model="error" variant="danger" dismissible>
+      <b-alert v-model="error" variant="danger">
         Cannot find Model!
       </b-alert>
     </div>

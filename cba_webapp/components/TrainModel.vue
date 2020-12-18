@@ -7,7 +7,7 @@
       <b-alert v-model="showDatasetAlert" variant="danger">
         Couldn't find dataset!
       </b-alert>
-      <b-alert v-if="trainingResponse" variant="success">
+      <b-alert v-model="showTrainingResponseAlert" variant="success">
         Successfully started training! Use this ID to check Logs or Status:
         <code>{{ trainingResponse }}</code>
       </b-alert>
@@ -20,7 +20,7 @@
         <pre class="border border-dark rounded"><code>{{ trainingFormData }}</code></pre>
       </b-col>
     </b-row>
-    <b-row v-if="trainingFormData && dataset_available">
+    <b-row v-if="trainingFormData && datasetAvailable">
       <b-button variant="warning" block @click="startTraining">
         Start Training!
       </b-button>
@@ -48,10 +48,18 @@ export default {
   computed: {
     showDatasetAlert: {
       get () {
-        return this.trainingFormData && !this.datasetAvailable
+        return this.trainingFormData !== null && !this.datasetAvailable
       },
       set (show) {
-        this.showAlert = false
+        this.showAlert = show
+      }
+    },
+    showTrainingResponseAlert: {
+      get () {
+        return this.trainingResponse !== null && this.trainingResponse !== undefined && !this.trainingRequestError
+      },
+      set (show) {
+        this.showAlert = show
       }
     }
   },
@@ -67,6 +75,7 @@ export default {
     async startTraining () {
       this.trainingResponse = await this.$trainingApiClient.train(this.trainingFormData)
       this.showAlert = true
+      console.log('startTraining+ ' + JSON.stringify(this.trainingResponse) + '   asdasd ' + JSON.stringify(this.showAlert))
       if (this.trainingResponse === null || this.trainingResponse === undefined) {
         this.trainingRequestError = true
         this.trainingFormData = null

@@ -1,7 +1,7 @@
 <template>
   <div class="container-fluid">
     <div v-if="showAlert">
-      <b-alert v-if="error" variant="danger" class="w-100" show dismissible>
+      <b-alert v-model="error" variant="danger" class="w-100">
         Couldn't find Model-Id!
       </b-alert>
     </div>
