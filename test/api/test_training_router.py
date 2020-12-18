@@ -10,7 +10,7 @@ sys.path.append(str(os.getcwd()))
 from fastapi.testclient import TestClient
 
 from main import app
-from api.model import BooleanResponse, CodebookModel, ModelConfig, TrainingRequest
+from api.model import BooleanResponse, CodebookDTO, ModelConfig, TrainingRequest
 
 
 @pytest.fixture
@@ -19,14 +19,14 @@ def client() -> TestClient:
 
 
 @pytest.fixture
-def cb() -> CodebookModel:
-    return CodebookModel(name="ProductTypeTest1", tags=["pet_supplies",
+def cb() -> CodebookDTO:
+    return CodebookDTO(name="ProductTypeTest1", tags=["pet_supplies",
                                                         "health_personal_care",
                                                         "grocery_gourmet_food",
                                                         "toys_games",
                                                         "beauty",
                                                         "baby_products"
-                                                        ])
+                                                      ])
 
 
 @pytest.fixture
@@ -50,7 +50,7 @@ def mv() -> str:
 
 
 @pytest.fixture
-def train_req(cb: CodebookModel, model_conf: ModelConfig, mv: str, dsv: str) -> TrainingRequest:
+def train_req(cb: CodebookDTO, model_conf: ModelConfig, mv: str, dsv: str) -> TrainingRequest:
     return TrainingRequest(cb=cb,
                            model_config=model_conf,
                            model_version=mv,
@@ -62,7 +62,7 @@ def train_req(cb: CodebookModel, model_conf: ModelConfig, mv: str, dsv: str) -> 
 
 
 @pytest.mark.run(order=1)
-def test_dataset_upload(cb: CodebookModel, dsv: str, client: TestClient):
+def test_dataset_upload(cb: CodebookDTO, dsv: str, client: TestClient):
     # TODO redundant code
 
     with open(os.getcwd() + '/test/resources/product_type_ds.zip', "rb") as f:

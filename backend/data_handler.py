@@ -7,7 +7,7 @@ from zipfile import ZipFile
 
 from fastapi import UploadFile
 
-from api.model import CodebookModel
+from api.model import CodebookDTO
 from logger import backend_logger
 from .exceptions import DatasetNotAvailableException
 from .exceptions import ModelNotAvailableException
@@ -41,7 +41,7 @@ class DataHandler(object):
         return cls._singleton
 
     @staticmethod
-    def get_model_directory(cb: CodebookModel, model_version: str = "default", create: bool = False) -> Path:
+    def get_model_directory(cb: CodebookDTO, model_version: str = "default", create: bool = False) -> Path:
         model_version = "default" if model_version is None or model_version == "" else model_version
         model_dir = DataHandler._get_data_directory(cb, create).joinpath(
             DataHandler._relative_model_directory).joinpath(
@@ -66,7 +66,7 @@ class DataHandler(object):
         return model_dir
 
     @staticmethod
-    def store_dataset(cb: CodebookModel, dataset_archive: UploadFile, dataset_version: str) -> Path:
+    def store_dataset(cb: CodebookDTO, dataset_archive: UploadFile, dataset_version: str) -> Path:
         try:
             ds_dir = DataHandler.get_dataset_directory(cb, dataset_version=dataset_version, create=True)
             dst = ds_dir.joinpath(dataset_archive.filename)
@@ -77,7 +77,7 @@ class DataHandler(object):
             dataset_archive.file.close()
 
     @staticmethod
-    def store_model(cb: CodebookModel, model_archive: UploadFile, model_version: str) -> Path:
+    def store_model(cb: CodebookDTO, model_archive: UploadFile, model_version: str) -> Path:
         try:
             model_dir = DataHandler.get_model_directory(cb, model_version=model_version, create=True)
             dst = model_dir.joinpath(model_archive.filename)
@@ -88,7 +88,7 @@ class DataHandler(object):
             model_archive.file.close()
 
     @staticmethod
-    def get_dataset_directory(cb: CodebookModel, dataset_version: str = "default", create: bool = False) -> Path:
+    def get_dataset_directory(cb: CodebookDTO, dataset_version: str = "default", create: bool = False) -> Path:
         data_directory = DataHandler._get_data_directory(cb, create).joinpath(
             DataHandler._relative_dataset_directory).joinpath(
             dataset_version)
@@ -99,8 +99,8 @@ class DataHandler(object):
         return data_directory
 
     @staticmethod
-    def _get_data_directory(cb: CodebookModel, create: bool = False) -> Path:
-        data_directory = Path(DataHandler._DATA_ROOT, cb._id)
+    def _get_data_directory(cb: CodebookDTO, create: bool = False) -> Path:
+        data_directory = Path(DataHandler._DATA_ROOT, cb.id)
         if create:
             data_directory.mkdir(exist_ok=True, parents=True)
         if not data_directory.is_dir():
@@ -128,20 +128,20 @@ class DataHandler(object):
             return Path(dst)
 
     @staticmethod
-    def purge_dataset_directory(cb: CodebookModel, dataset_version: str):
+    def purge_dataset_directory(cb: CodebookDTO, dataset_version: str):
         dataset_dir = DataHandler.get_dataset_directory(cb, dataset_version=dataset_version)
         backend_logger.warning(f"Permanently removing dataset '{dataset_version}' of Codebook '{cb.name}'")
         shutil.rmtree(dataset_dir)
 
     @staticmethod
-    def purge_model_directory(cb: CodebookModel, model_version: str):
+    def purge_model_directory(cb: CodebookDTO, model_version: str):
         model_dir = DataHandler.get_model_directory(cb, model_version=model_version)
         backend_logger.warning(f"Permanently removing data of model '{model_version}' of Codebook '{cb.name}'")
         shutil.rmtree(model_dir)
 
     @staticmethod
-    def _purge_data(cb: CodebookModel):
+    def _purge_data(cb: CodebookDTO):
         backend_logger.warning(
             f"Permanently removing all data (including models and datasets) of Codebook <{cb.name}>!")
-        data_directory = Path(DataHandler._DATA_ROOT, cb._id)
+        data_directory = Path(DataHandler._DATA_ROOT, cb.id)
         shutil.rmtree(data_directory)

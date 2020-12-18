@@ -6,7 +6,7 @@ from typing import Tuple
 import tensorflow as tf
 from fastapi import UploadFile
 
-from api.model import CodebookModel, ModelMetadata
+from api.model import CodebookDTO, ModelMetadata
 from logger import backend_logger
 from .data_handler import DataHandler
 from .exceptions import ErroneousModelException, ModelMetadataNotAvailableException, ModelNotAvailableException, \
@@ -23,7 +23,7 @@ class ModelManager(object):
         return cls._singleton
 
     @staticmethod
-    def is_available(cb: CodebookModel, model_version: str = "default") -> bool:
+    def is_available(cb: CodebookDTO, model_version: str = "default") -> bool:
         """
         Checks if the model for the given codebook is available
         :param cb: the codebook
@@ -37,7 +37,7 @@ class ModelManager(object):
             return False
 
     @staticmethod
-    def load(cb: CodebookModel, model_version: str = "default"):
+    def load(cb: CodebookDTO, model_version: str = "default"):
         """
         Loads the Tensorflow Estimator model for the given Codebook
         :param cb: the codebook
@@ -53,7 +53,7 @@ class ModelManager(object):
         return estimator
 
     @staticmethod
-    def load_metadata(cb: CodebookModel, model_version: str = "default") -> ModelMetadata:
+    def load_metadata(cb: CodebookDTO, model_version: str = "default") -> ModelMetadata:
         # TODO merge with get_metadata_path()
         """
         Loads the metadata of a model for the given Codebook
@@ -86,7 +86,7 @@ class ModelManager(object):
         return metadata_path
 
     @staticmethod
-    def store_uploaded_model(cb: CodebookModel, model_version: str, model_archive: UploadFile) -> str:
+    def store_uploaded_model(cb: CodebookDTO, model_version: str, model_archive: UploadFile) -> str:
         # TODO register in redis
         # - create metadata for model or make sure it exists in the archive
         backend_logger.info(f"Successfully received model archive for Codebook {cb.name}")
@@ -103,15 +103,15 @@ class ModelManager(object):
         return str(path)
 
     @staticmethod
-    def remove(cb: CodebookModel, model_version: str):
+    def remove(cb: CodebookDTO, model_version: str):
         # TODO unregister
         backend_logger.info(f"Removing model '{model_version}' of Codebook {cb.name}")
         DataHandler.purge_model_directory(cb, model_version)
         return True
 
     @staticmethod
-    def get_model_id(cb: CodebookModel, model_version: str = "default", dataset_version: str = "default") -> str:
-        mid = cb._id + "_m_" + model_version + "_d_" + dataset_version
+    def get_model_id(cb: CodebookDTO, model_version: str = "default", dataset_version: str = "default") -> str:
+        mid = cb.id + "_m_" + model_version + "_d_" + dataset_version
         assert ModelManager._is_valid_model_id(mid)
         return mid
 

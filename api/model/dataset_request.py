@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 
-from api.model import CodebookModel
+from api.model import CodebookDTO
 
 
 class DatasetRequest(BaseModel):
-    cb: CodebookModel
+    cb: CodebookDTO
     dataset_version: str

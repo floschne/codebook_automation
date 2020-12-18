@@ -5,8 +5,8 @@ from typing import Dict, List, Tuple, Union
 
 import tensorflow as tf
 
-from api.model import DocumentModel, PredictionResult, MultiDocumentPredictionResult, PredictionRequest, \
-    MultiDocumentPredictionRequest, TagLabelMapping, CodebookModel
+from api.model import DocumentDTO, PredictionResult, MultiDocumentPredictionResult, PredictionRequest, \
+    MultiDocumentPredictionRequest, TagLabelMapping, CodebookDTO
 from logger import backend_logger
 from .exceptions import ErroneousModelException, ErroneousMappingException, PredictionError, ModelNotAvailableException
 from .model_manager import ModelManager
@@ -118,7 +118,7 @@ class Predictor(object):
             raise PredictionError()
 
     @staticmethod
-    def _build_tf_sample(doc: DocumentModel):
+    def _build_tf_sample(doc: DocumentDTO):
         ex = tf.train.Example()
         ex.features.feature['text'].bytes_list.value.extend([bytes(doc.text, encoding='utf-8')])
         return tf.constant(ex.SerializeToString())
@@ -190,7 +190,7 @@ class Predictor(object):
         )
 
     @staticmethod
-    def _verify_mapping(classes: List[str], tag_label_map: TagLabelMapping, cb: CodebookModel):
+    def _verify_mapping(classes: List[str], tag_label_map: TagLabelMapping, cb: CodebookDTO):
 
         correct = True
 
@@ -213,7 +213,7 @@ class Predictor(object):
                        classes: List[str],
                        probs: List[float],
                        tag_label_map: TagLabelMapping,
-                       cb: CodebookModel) \
+                       cb: CodebookDTO) \
             -> Tuple[Dict[str, float], str]:
 
         not_mapped = dict(zip(classes, probs))

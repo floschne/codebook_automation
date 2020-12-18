@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field
 
-from . import CodebookModel
+from . import CodebookDTO
 from .model_config import ModelConfig
 
 
 class TrainingRequest(BaseModel):
-    cb: CodebookModel
+    cb: CodebookDTO
     model_config: ModelConfig
     model_version: str = Field(default="default", example="default")
     dataset_version: str = Field(default="default", example="default")

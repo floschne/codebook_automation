@@ -1,7 +1,7 @@
 from .boolean_response import BooleanResponse
-from .codebook_model import CodebookModel
+from .codebook_dto import CodebookDTO
 from .dataset_request import DatasetRequest
-from .document_model import DocumentModel
+from .document_dto import DocumentDTO
 from .model_config import ModelConfig, OptimizerIdentifier, ActivationFunctionIdentifier
 from .model_metadata import ModelMetadata
 from .prediction_request import PredictionRequest, MultiDocumentPredictionRequest
@@ -12,8 +12,8 @@ from .training_request import TrainingRequest
 from .training_response import TrainingResponse
 from .training_status import TrainingState, TrainingStatus
 
-__all__ = [CodebookModel,
-           DocumentModel,
+__all__ = [CodebookDTO,
+           DocumentDTO,
            TagLabelMapping,
            PredictionRequest,
            MultiDocumentPredictionRequest,

@@ -5,7 +5,7 @@ import pandas as pd
 import tensorflow as tf
 from fastapi import UploadFile
 
-from api.model import CodebookModel, DatasetRequest
+from api.model import CodebookDTO, DatasetRequest
 from logger import backend_logger
 from .data_handler import DataHandler
 from .exceptions import ErroneousDatasetException, DatasetNotAvailableException
@@ -21,7 +21,7 @@ class DatasetManager(object):
         return cls._singleton
 
     @staticmethod
-    def store_archive(cb: CodebookModel, dataset_version: str, dataset_archive: UploadFile) -> bool:
+    def store_archive(cb: CodebookDTO, dataset_version: str, dataset_archive: UploadFile) -> bool:
         backend_logger.info(f"Successfully received dataset archive for Codebook {cb.name}")
 
         try:
@@ -38,7 +38,7 @@ class DatasetManager(object):
         return True
 
     @staticmethod
-    def get_tensorflow_dataset(cb: CodebookModel, dataset_version: str = "default", get_labels_only=False) -> \
+    def get_tensorflow_dataset(cb: CodebookDTO, dataset_version: str = "default", get_labels_only=False) -> \
             Union[List[str], Tuple[tf.data.Dataset, tf.data.Dataset, List[str]]]:
 
         # load and prepare the dataframes
@@ -82,7 +82,7 @@ class DatasetManager(object):
         return train_set, test_set, list(train_cats.categories)
 
     @staticmethod
-    def _load_dataframes(cb: CodebookModel, dataset_version: str = "default") -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def _load_dataframes(cb: CodebookDTO, dataset_version: str = "default") -> Tuple[pd.DataFrame, pd.DataFrame]:
         dataset_dir = DataHandler.get_dataset_directory(cb, dataset_version=dataset_version)
 
         # make sure train.csv & test.csv is available and has two columns 'text' & 'label'
@@ -108,7 +108,7 @@ class DatasetManager(object):
             return False
 
     @staticmethod
-    def _is_valid(cb: CodebookModel, dataset_version: str = "default") -> bool:
+    def _is_valid(cb: CodebookDTO, dataset_version: str = "default") -> bool:
         train_df, test_df = DatasetManager._load_dataframes(cb, dataset_version)
         return ("text" and "label" in train_df) and ("text" and "label" in test_df)
 

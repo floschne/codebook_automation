@@ -4,7 +4,7 @@ from fastapi import APIRouter, UploadFile, File, Form
 
 from backend import ModelManager
 from logger import api_logger
-from ..model import CodebookModel, BooleanResponse, StringResponse, ModelMetadata
+from ..model import CodebookDTO, BooleanResponse, StringResponse, ModelMetadata
 
 PREFIX = "/model"
 
@@ -12,14 +12,14 @@ router = APIRouter()
 
 
 @router.post("/available/", response_model=BooleanResponse, tags=["model"])
-async def is_available(cb: CodebookModel, model_version: Optional[str] = "default"):
+async def is_available(cb: CodebookDTO, model_version: Optional[str] = "default"):
     api_logger.info(
         f"POST request on {PREFIX}/is_available with model version '{model_version}'for Codebook {cb.json()}")
     return BooleanResponse(value=ModelManager.is_available(cb=cb, model_version=model_version))
 
 
 @router.post("/metadata/", response_model=ModelMetadata, tags=["model"])
-async def get_metadata(cb: CodebookModel, model_version: Optional[str] = "default"):
+async def get_metadata(cb: CodebookDTO, model_version: Optional[str] = "default"):
     api_logger.info(
         f"POST request on {PREFIX}/get_metadata with model version '{model_version}'for Codebook {cb.json()}")
     return ModelManager.load_metadata(cb, model_version=model_version)
@@ -35,7 +35,7 @@ async def upload(codebook_name: str = Form(..., description="The name of the Cod
                                                        "existing model with the same (default) tag, "
                                                        "the model gets overwritten.  E.g. v1"),
                  model_archive: UploadFile = File(..., description="Zip-archive of the model.")):
-    cb = CodebookModel(name=codebook_name, tags=codebook_tag_list.replace(" ", "").split(','))
+    cb = CodebookDTO(name=codebook_name, tags=codebook_tag_list.replace(" ", "").split(','))
     model_version = "default" if model_version is None or model_archive == "" else model_version
 
     api_logger.info(
@@ -45,7 +45,7 @@ async def upload(codebook_name: str = Form(..., description="The name of the Cod
 
 
 @router.delete("/remove/", response_model=BooleanResponse, tags=['model'])
-async def remove(cb: CodebookModel, model_version: Optional[str] = "default"):
+async def remove(cb: CodebookDTO, model_version: Optional[str] = "default"):
     api_logger.info(
         f"DELETE request on {PREFIX}/remove with model version '{model_version}'for Codebook {cb.json()}")
     return BooleanResponse(value=ModelManager.remove(cb=cb, model_version=model_version))

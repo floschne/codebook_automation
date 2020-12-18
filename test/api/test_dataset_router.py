@@ -8,7 +8,7 @@ sys.path.append(str(os.getcwd()))
 from fastapi.testclient import TestClient
 
 from main import app
-from api.model import BooleanResponse, CodebookModel, DatasetRequest
+from api.model import BooleanResponse, CodebookDTO, DatasetRequest
 
 
 @pytest.fixture
@@ -17,14 +17,14 @@ def client() -> TestClient:
 
 
 @pytest.fixture
-def cb() -> CodebookModel:
-    return CodebookModel(name="ProductTypeTest1", tags=["pet_supplies",
+def cb() -> CodebookDTO:
+    return CodebookDTO(name="ProductTypeTest1", tags=["pet_supplies",
                                                         "health_personal_care",
                                                         "grocery_gourmet_food",
                                                         "toys_games",
                                                         "beauty",
                                                         "baby_products"
-                                                        ])
+                                                      ])
 
 
 @pytest.fixture
@@ -33,12 +33,12 @@ def dsv() -> str:
 
 
 @pytest.fixture
-def ds_req(cb: CodebookModel, dsv: str) -> DatasetRequest:
+def ds_req(cb: CodebookDTO, dsv: str) -> DatasetRequest:
     return DatasetRequest(cb=cb, dataset_version=dsv)
 
 
 @pytest.mark.run(order=1)
-def test_dataset_upload(cb: CodebookModel, dsv: str, client: TestClient):
+def test_dataset_upload(cb: CodebookDTO, dsv: str, client: TestClient):
     with open(os.getcwd() + '/test/resources/product_type_ds.zip', "rb") as f:
         archive = f.read()
         response = client.put('/dataset/upload/',
@@ -53,7 +53,7 @@ def test_dataset_upload(cb: CodebookModel, dsv: str, client: TestClient):
 
 @pytest.mark.run(order=2)
 def test_dataset_is_available(ds_req: DatasetRequest, client: TestClient):
-    response = client.post("/dataset/is_available/", json=ds_req.dict())
+    response = client.post("/dataset/available/", json=ds_req.dict())
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == BooleanResponse(value=True)
 
@@ -67,6 +67,6 @@ def test_dataset_remove(ds_req: DatasetRequest, client: TestClient):
 
 @pytest.mark.run(order=4)
 def test_dataset_is_not_available(ds_req: DatasetRequest, client: TestClient):
-    response = client.post("/dataset/is_available/", json=ds_req.dict())
+    response = client.post("/dataset/available/", json=ds_req.dict())
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == BooleanResponse(value=False)

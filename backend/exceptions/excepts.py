@@ -1,14 +1,14 @@
-from api.model import CodebookModel
+from api.model import CodebookDTO
 
 
 class NoDataForCodebookException(Exception):
-    def __init__(self, cb: CodebookModel = None):
+    def __init__(self, cb: CodebookDTO = None):
         self.codebook = cb
         self.message = f"No data for Codebook <{cb}> found!"
 
 
 class ErroneousDatasetException(Exception):
-    def __init__(self, dataset_version: str = None, cb: CodebookModel = None, msg: str = None, caused_by: str = None):
+    def __init__(self, dataset_version: str = None, cb: CodebookDTO = None, msg: str = None, caused_by: str = None):
         self.codebook = cb
         self.caused_by = caused_by
         if msg is None:
@@ -18,7 +18,7 @@ class ErroneousDatasetException(Exception):
 
 
 class DatasetNotAvailableException(Exception):
-    def __init__(self, dataset_version: str = None, cb: CodebookModel = None):
+    def __init__(self, dataset_version: str = None, cb: CodebookDTO = None):
         self.dataset_version = dataset_version,
         self.codebook = cb
 
@@ -32,7 +32,7 @@ class InvalidModelIdException(Exception):
 
 
 class ErroneousModelException(Exception):
-    def __init__(self, model_version: str = None, cb: CodebookModel = None, msg: str = None):
+    def __init__(self, model_version: str = None, cb: CodebookDTO = None, msg: str = None):
         self.codebook = cb
         if msg is None:
             self.message = f"Model <{model_version}> for Codebook <{cb.name}> is erroneous!"
@@ -41,13 +41,13 @@ class ErroneousModelException(Exception):
 
 
 class ErroneousMappingException(Exception):
-    def __init__(self, cb: CodebookModel = None):
+    def __init__(self, cb: CodebookDTO = None):
         self.codebook = cb
         self.message = f"Tag-Label-Mapping is erroneous!"
 
 
 class ModelNotAvailableException(Exception):
-    def __init__(self, model_version: str = None, cb: CodebookModel = None, model_id: str = None):
+    def __init__(self, model_version: str = None, cb: CodebookDTO = None, model_id: str = None):
         self.model_version = model_version,
         self.model_id = model_id
         self.codebook = cb
@@ -59,13 +59,13 @@ class ModelNotAvailableException(Exception):
 
 
 class ModelMetadataNotAvailableException(Exception):
-    def __init__(self, cb: CodebookModel, model_version: str = None):
+    def __init__(self, cb: CodebookDTO, model_version: str = None):
         self.model_id = model_version
         self.message = f"Model Metadata for Model <{model_version}> of Codebook <{cb.name}> not available!"
 
 
 class ModelInitializationException(Exception):
-    def __init__(self, cb: CodebookModel, path: str, caused_by: str = None):
+    def __init__(self, cb: CodebookDTO, path: str, caused_by: str = None):
         self.cb = cb
         self.path = path
         self.caused_by = caused_by

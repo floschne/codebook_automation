@@ -3,13 +3,13 @@ import sys
 
 sys.path.append(str(os.getcwd()))
 
-from api.model import CodebookModel
+from api.model import CodebookDTO
 
 
 def create_dummy_codebook_models(num: int):
     dummies = list()
     for i in range(num):
-        dummies.append(CodebookModel(
+        dummies.append(CodebookDTO(
             name=f"DummyCodebookModel{i}",
             tags=[f"DummyTag{i}{i + 1}",
                   f"DummyTag{i}{i + 2}",
