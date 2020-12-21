@@ -82,7 +82,7 @@ class ModelManager(object):
 
         metadata = ModelMetadata(
             codebook_name=r.cb_name,
-            model_version=r.model_version,
+            version=r.model_version,
             dataset_version=r.dataset_version,
             labels=dataset_metadata.labels,
             model_type='DNNClassifier',  # TODO

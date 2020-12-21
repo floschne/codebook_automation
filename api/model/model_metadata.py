@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class ModelMetadata(BaseModel):
     codebook_name: str
-    model_version: str
+    version: str
     dataset_version: str
     labels: Dict[str, str]
     model_type: str

@@ -86,7 +86,7 @@ class DataHandler(object):
 
     @staticmethod
     def store_model_metadata(cb_name: str, model_metadata: ModelMetadata) -> Path:
-        model_dir = DataHandler.get_model_directory(cb_name, model_version=model_metadata.model_version, create=False)
+        model_dir = DataHandler.get_model_directory(cb_name, model_version=model_metadata.version, create=False)
         dst = model_dir.joinpath('metadata.json')
         with open(dst, 'w') as out:
             backend_logger.info(f"Storing model metadata at {str(dst)}")
