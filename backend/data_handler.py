@@ -74,6 +74,13 @@ class DataHandler(object):
         return dst
 
     @staticmethod
+    def get_dataset_metadata(cb_name: str, dataset_version: str) -> DatasetMetadata:
+        model_dir = DataHandler.get_dataset_directory(cb_name, dataset_version=dataset_version)
+        path = model_dir.joinpath('metadata.json')
+        assert path.exists()
+        return DatasetMetadata.parse_file(path)
+
+    @staticmethod
     def store_model(cb_name: str, model_archive: UploadFile, model_version: str) -> Path:
         try:
             model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version, create=True)
@@ -93,6 +100,13 @@ class DataHandler(object):
             print(model_metadata.json(), file=out)
         assert dst.exists() and ModelMetadata.parse_file(dst) == model_metadata  # TODO exception
         return dst
+
+    @staticmethod
+    def get_model_metadata(cb_name: str, model_version: str) -> ModelMetadata:
+        model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version)
+        path = model_dir.joinpath('metadata.json')
+        assert path.exists()
+        return ModelMetadata.parse_file(path)
 
     @staticmethod
     def get_dataset_directory(cb_name: str, dataset_version: str = "default", create: bool = False) -> Path:

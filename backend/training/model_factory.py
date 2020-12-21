@@ -41,7 +41,7 @@ class ModelFactory(object):
                                                dropout=conf.dropout,
                                                optimizer=conf.optimizer,
                                                config=run_config)
-        model_id = ModelManager.get_model_id(req.cb_name, req.model_version, req.dataset_version)
+        model_id = ModelManager.build_model_id(req.cb_name, req.model_version, req.dataset_version)
 
         return estimator, feature_columns[0], model_id
 

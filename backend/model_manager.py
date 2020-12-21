@@ -1,5 +1,4 @@
 import datetime as dt
-import json
 import re
 from typing import Tuple, Dict
 
@@ -8,10 +7,11 @@ from fastapi import UploadFile
 
 from api.model import ModelMetadata, TrainingRequest
 from logger import backend_logger
+from . import RedisHandler
 from .data_handler import DataHandler
 from .dataset_manager import DatasetManager
-from .exceptions import ErroneousModelException, ModelMetadataNotAvailableException, ModelNotAvailableException, \
-    NoDataForCodebookException, InvalidModelIdException
+from .exceptions import ErroneousModelException, ModelNotAvailableException, NoDataForCodebookException, \
+    InvalidModelIdException
 
 
 class ModelManager(object):
@@ -24,17 +24,22 @@ class ModelManager(object):
         return cls._singleton
 
     @staticmethod
-    def is_available(cb_name: str, model_version: str = "default") -> bool:
+    def is_available(cb_name: str, model_version: str = "default", complete_check: bool = False) -> bool:
         """
         Checks if the model for the given codebook is available
         :param cb_name: the codebook name
         :param model_version: version tag of the model (e.g. "default")
+        :param complete_check: if true, not only the Redis cache but also the physical directory gets checked
+               for the existence of the model
         :return: True if the model for the codebook is available and False otherwise
         """
         try:
-            model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version)
-            return tf.saved_model.contains_saved_model(model_dir)
-        except (ModelMetadataNotAvailableException, ModelNotAvailableException, NoDataForCodebookException) as e:
+            if not complete_check:
+                return RedisHandler.get_model_metadata(cb_name=cb_name, model_version=model_version) is not None
+            else:
+                model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version)
+                return tf.saved_model.contains_saved_model(model_dir)
+        except (ModelNotAvailableException, NoDataForCodebookException):
             return False
 
     @staticmethod
@@ -54,28 +59,25 @@ class ModelManager(object):
         return estimator
 
     @staticmethod
-    def load_metadata(cb_name: str, model_version: str = "default") -> ModelMetadata:
-        # TODO merge with get_metadata_path()
+    def get_metadata(cb_name: str, model_version: str = "default", from_cache: bool = True) -> ModelMetadata:
         """
         Loads the metadata of a model for the given Codebook
         :param cb_name: the codebook name
         :param model_version: version tag of the model (e.g. "default")
+        :param from_cache: if True return metadata from Redis cache otherwise from physical file
         :return: the metadata of the model for the given Codebook
         """
-        # TODO
-        #  - load from redis
-        #  - outsource model meta data path etc
-        model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version)
-        path = model_dir.joinpath('metadata.json')
         try:
-            with open(path, 'r') as json_file:
-                data = json.load(json_file)
-                return ModelMetadata(**data)
+            if from_cache:
+                return RedisHandler.get_model_metadata(cb_name, model_version)
+            else:
+                return DataHandler.get_model_metadata(cb_name, model_version)
         except Exception:
-            raise ModelMetadataNotAvailableException(cb_name=cb_name, model_version="default")
+            raise ModelNotAvailableException(cb_name=cb_name, model_version="default")
 
     @staticmethod
-    def generate_metadata(r: TrainingRequest, eval_results: Dict[str, float], persist: bool = False) -> ModelMetadata:
+    def publish_model(r: TrainingRequest, eval_results: Dict[str, float]) -> ModelMetadata:
+
         backend_logger.info(f"Generating model metadata for model '{r.model_version}' of Codebook '{r.cb_name}'")
 
         dataset_metadata = DatasetManager.get_metadata(r.cb_name, r.dataset_version)
@@ -91,8 +93,8 @@ class ModelManager(object):
             created=str(dt.datetime.now())
         )
 
-        if persist:
-            DataHandler.store_model_metadata(r.cb_name, metadata)
+        DataHandler.store_model_metadata(r.cb_name, metadata)
+        RedisHandler.register_model(r.cb_name, metadata)
 
         return metadata
 
@@ -115,13 +117,13 @@ class ModelManager(object):
 
     @staticmethod
     def remove(cb_name: str, model_version: str):
-        # TODO unregister
         backend_logger.info(f"Removing model '{model_version}' of Codebook {cb_name}")
+        RedisHandler.unregister_model(cb_name, model_version)
         DataHandler.purge_model_directory(cb_name, model_version)
         return True
 
     @staticmethod
-    def get_model_id(cb_name: str, model_version: str = "default", dataset_version: str = "default") -> str:
+    def build_model_id(cb_name: str, model_version: str = "default", dataset_version: str = "default") -> str:
         mid = cb_name + "_mv_" + model_version + "_dv_" + dataset_version
         assert ModelManager._is_valid_model_id(mid)
         return mid

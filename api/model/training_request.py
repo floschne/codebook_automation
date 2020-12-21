@@ -4,7 +4,7 @@ from .model_config import ModelConfig
 
 
 class TrainingRequest(BaseModel):
-    cb_name: str
+    cb_name: str = Field(description="The name of the Codebook for which the model gets trained!")
     model_config: ModelConfig
     model_version: str = Field(default="default", example="default")
     dataset_version: str = Field(default="default", example="default")

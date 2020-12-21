@@ -17,7 +17,7 @@ def client() -> TestClient:
 
 
 @pytest.fixture
-defcb_name() -> str:
+def cb_name() -> str:
     return "ProductTypeTest1"
 
 
@@ -36,7 +36,7 @@ def test_dataset_upload(cb_name: str, dsv: str, client: TestClient):
     with open(os.getcwd() + '/test/resources/product_type_ds.zip', "rb") as f:
         archive = f.read()
         response = client.put('/dataset/upload/',
-                              data={"codebook_name": cb_name ,
+                              data={"codebook_name": cb_name,
                                     "dataset_version": dsv},
                               files={"dataset_archive": ("product_type_ds.zip", archive)})
 

@@ -55,12 +55,6 @@ class ModelNotAvailableException(Exception):
             self.message = f"Model <{model_version}> for Codebook <{cb_name}> not available!"
 
 
-class ModelMetadataNotAvailableException(Exception):
-    def __init__(self, cb_name: str, model_version: str = None):
-        self.model_id = model_version
-        self.message = f"Model Metadata for Model <{model_version}> of Codebook <{cb_name}> not available!"
-
-
 class ModelInitializationException(Exception):
     def __init__(self, cb_name: str, path: str, caused_by: str = None):
         self.cb_name = cb_name

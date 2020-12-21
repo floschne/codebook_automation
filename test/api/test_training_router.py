@@ -76,6 +76,6 @@ def test_train(train_req: TrainingRequest, client: TestClient):
     response = client.post('/training/train/', json=train_req.dict())
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"model_id": ModelManager.get_model_id(train_req.cb_name ,
-                                                                     train_req.model_version,
-                                                                     train_req.dataset_version)}
+    assert response.json() == {"model_id": ModelManager.build_model_id(train_req.cb_name,
+                                                                       train_req.model_version,
+                                                                       train_req.dataset_version)}

@@ -22,10 +22,10 @@ async def is_available(cb_name: str, model_version: Optional[str] = "default"):
 async def get_metadata(cb_name: str, model_version: Optional[str] = "default"):
     api_logger.info(
         f"POST request on {PREFIX}/metadata with model version '{model_version}'for Codebook {cb_name}")
-    return ModelManager.load_metadata(cb_name, model_version=model_version)
+    return ModelManager.get_metadata(cb_name, model_version=model_version)
 
 
-@router.put("/upload/", response_model=StringResponse, tags=["model"])
+@router.put("/upload/", response_model=StringResponse, tags=["model"], deprecated=True)
 async def upload(codebook_name: str = Form(..., description="The name of the Codebook. Case-sensitive!"),
                  model_version: str = Form(...,
                                            description="Optional version tag of the model. If a tag "

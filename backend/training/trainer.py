@@ -69,7 +69,7 @@ class Trainer(object):
             p = Process(target=train_eval_export, args=(request, Trainer._status_dict, Trainer._active_pids))
             p.start()
 
-        model_id = ModelManager.get_model_id(request.cb_name, request.model_version, request.dataset_version)
+        model_id = ModelManager.build_model_id(request.cb_name, request.model_version, request.dataset_version)
         return TrainingResponse(model_id=model_id)
 
     @staticmethod
@@ -130,7 +130,7 @@ def update_training_status(status_dict: Dict[str, TrainingStatus], mid: str, sta
 @logger.catch
 def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatus], active_pids: Dict[int, str]):
     # TODO use redis or similar to persist status and logs etc
-    mid = ModelManager.get_model_id(req.cb_name, req.model_version, req.dataset_version)
+    mid = ModelManager.build_model_id(req.cb_name, req.model_version, req.dataset_version)
     proc = multiprocessing.current_process()
     # add pid to active pids
     active_pids[proc.pid] = mid
@@ -192,13 +192,12 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         for f in files:
             shutil.move(str(f), str(f.parent.parent))
 
-        # generate and persist model meta data
-        ModelManager.generate_metadata(req, eval_results, persist=True)
+        # publish the model
+        ModelManager.publish_model(req, eval_results)
 
         # TODO exception if fails
-        assert ModelManager.is_available(req.cb_name, req.model_version)
+        assert ModelManager.is_available(req.cb_name, req.model_version, complete_check=True)
         backend_logger.info(f"Successfully exported model <{mid}> at {estimator_path}")
-
         backend_logger.info(f"Completed train-eval-export cycle for model <{mid}>")
         backend_logger.info(f"Model <{mid}> stored at {str(dst)}")
         # updating training status

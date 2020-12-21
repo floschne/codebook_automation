@@ -8,6 +8,7 @@ from fastapi import UploadFile
 
 from api.model import DatasetRequest, DatasetMetadata
 from logger import backend_logger
+from . import RedisHandler
 from .data_handler import DataHandler
 from .exceptions import ErroneousDatasetException, DatasetNotAvailableException
 
@@ -37,6 +38,8 @@ class DatasetManager(object):
         if not DatasetManager._is_valid(cb_name, dataset_version=dataset_version):
             raise ErroneousDatasetException(dataset_version, cb_name,
                                             f"Error while persisting dataset for Codebook {cb_name} under {str(path)}")
+
+        RedisHandler.register_dataset(cb_name, metadata)
         backend_logger.info(
             f"Successfully persisted dataset '{dataset_version}' for Codebook <{cb_name}> under {str(path)} and "
             f"metadata under {metadata_path}")
@@ -121,15 +124,24 @@ class DatasetManager(object):
                                )
 
     @staticmethod
-    def get_metadata(cb_name: str, dataset_version: str) -> DatasetMetadata:
-        metadata_file = DataHandler.get_dataset_directory(cb_name, dataset_version, False).joinpath('metadata.json')
-        return DatasetMetadata.parse_file(metadata_file)
+    def get_metadata(cb_name: str, dataset_version: str, from_cache: bool = True) -> DatasetMetadata:
+        if from_cache:
+            return RedisHandler.get_dataset_metadata(cb_name, dataset_version)
+        else:
+            metadata_file = DataHandler.get_dataset_directory(cb_name, dataset_version, False).joinpath('metadata.json')
+            return DatasetMetadata.parse_file(metadata_file)
 
     @staticmethod
-    def is_available(req: DatasetRequest) -> bool:
-        # TODO just query redis is available w/o checking validity (maybe use flag to do so)
+    def is_available(req: DatasetRequest, complete_check: bool = False) -> bool:
+
         try:
-            return DatasetManager._is_valid(req.cb_name, req.dataset_version)
+            cb_name = req.cb_name
+            dataset_version = req.dataset_version
+            is_in_cache = RedisHandler.get_dataset_metadata(cb_name, dataset_version=dataset_version) is not None
+            if complete_check:
+                return is_in_cache and DatasetManager._is_valid(cb_name, dataset_version)
+            else:
+                return is_in_cache
         except DatasetNotAvailableException:
             return False
 
@@ -141,11 +153,11 @@ class DatasetManager(object):
 
     @staticmethod
     def remove(req: DatasetRequest):
-        # TODO unregister
         try:
             cb_name = req.cb_name
             dataset_version = req.dataset_version
             backend_logger.info(f"Removing dataset '{dataset_version}' of Codebook {cb_name}")
+            RedisHandler.unregister_dataset(cb_name, dataset_version)
             DataHandler.purge_dataset_directory(cb_name=cb_name, dataset_version=dataset_version)
             return True
         except Exception as e:

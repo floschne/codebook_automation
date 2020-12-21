@@ -4,6 +4,7 @@ from typing import List, Union
 import redis
 
 from api.model import ModelMetadata, DatasetMetadata
+from backend.exceptions import ModelNotAvailableException, DatasetNotAvailableException
 from logger import backend_logger
 
 
@@ -35,31 +36,51 @@ class RedisHandler(object):
         return cls._singleton
 
     @staticmethod
-    def __filter_by_version(metadata: List[Union[ModelMetadata, DatasetMetadata]], version: str) \
+    def __filter_by_version(cb_name: str, metadata: List[Union[ModelMetadata, DatasetMetadata]], version: str) \
             -> Union[ModelMetadata, DatasetMetadata]:
+
         # TODO think of using Redis Indices (ZADD) and index by version
         def filter_fn(md: Union[ModelMetadata, DatasetMetadata]):
             return md.version == version
 
         filtered = list(filter(filter_fn, metadata))
-        assert len(filtered) == 1
+        if len(filtered) != 1:
+            if isinstance(metadata, ModelMetadata):
+                raise ModelNotAvailableException(cb_name=cb_name, model_version=version)
+            elif isinstance(metadata, DatasetMetadata):
+                raise DatasetNotAvailableException(cb_name=cb_name, dataset_version=version)
         return filtered[0]
 
     @staticmethod
     def register_model(cb_name: str, metadata: ModelMetadata):
         assert RedisHandler.__models.sadd(cb_name, metadata.json()) == 1
+        backend_logger.info(f"Successfully registered model '{metadata.version}' of Codebook '{cb_name}'!")
 
     @staticmethod
     def register_dataset(cb_name: str, metadata: DatasetMetadata):
         assert RedisHandler.__datasets.sadd(cb_name, metadata.json()) == 1
+        backend_logger.info(
+            f"Successfully registered dataset '{metadata.version}' of Codebook '{cb_name}'!")
+
+    @staticmethod
+    def unregister_model(cb_name: str, model_version: str):
+        model_metadata = RedisHandler.get_model_metadata(cb_name, model_version)
+        assert RedisHandler.__models.srem(cb_name, model_metadata) == 1
+        backend_logger.info(f"Successfully unregistered model '{model_version}' of Codebook '{cb_name}'!")
+
+    @staticmethod
+    def unregister_dataset(cb_name: str, dataset_version: str):
+        model_metadata = RedisHandler.get_dataset_metadata(cb_name, dataset_version)
+        assert RedisHandler.__models.srem(cb_name, model_metadata) == 1
+        backend_logger.info(f"Successfully unregistered dataset '{dataset_version}' of Codebook '{cb_name}'")
 
     @staticmethod
     def get_model_metadata(cb_name: str, model_version: str) -> ModelMetadata:
-        return RedisHandler.__filter_by_version(RedisHandler.list_models(cb_name), model_version)
+        return RedisHandler.__filter_by_version(cb_name, RedisHandler.list_models(cb_name), model_version)
 
     @staticmethod
     def get_dataset_metadata(cb_name: str, dataset_version: str) -> DatasetMetadata:
-        return RedisHandler.__filter_by_version(RedisHandler.list_models(cb_name), dataset_version)
+        return RedisHandler.__filter_by_version(cb_name, RedisHandler.list_models(cb_name), dataset_version)
 
     @staticmethod
     def list_models(cb_name: str) -> List[ModelMetadata]:
@@ -70,13 +91,3 @@ class RedisHandler(object):
     def list_datasets(cb_name: str) -> List[DatasetMetadata]:
         datasets = RedisHandler.__datasets.smembers(cb_name)
         return [DatasetMetadata.parse_raw(m) for m in datasets]
-
-    @staticmethod
-    def unregister_model(cb_name: str, model_version: str):
-        model_metadata = RedisHandler.get_model_metadata(cb_name, model_version)
-        assert RedisHandler.__models.srem(cb_name, model_metadata) == 1
-
-    @staticmethod
-    def unregister_dataset(cb_name: str, dataset_version: str):
-        model_metadata = RedisHandler.get_dataset_metadata(cb_name, dataset_version)
-        assert RedisHandler.__models.srem(cb_name, model_metadata) == 1
