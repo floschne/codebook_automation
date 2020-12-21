@@ -8,7 +8,7 @@ sys.path.append(str(os.getcwd()))
 from fastapi.testclient import TestClient
 
 from main import app
-from api.model import BooleanResponse, CodebookDTO, DatasetRequest
+from api.model import BooleanResponse, CodebookDTO, DatasetRequest, DatasetMetadata
 
 
 @pytest.fixture
@@ -19,11 +19,11 @@ def client() -> TestClient:
 @pytest.fixture
 def cb() -> CodebookDTO:
     return CodebookDTO(name="ProductTypeTest1", tags=["pet_supplies",
-                                                        "health_personal_care",
-                                                        "grocery_gourmet_food",
-                                                        "toys_games",
-                                                        "beauty",
-                                                        "baby_products"
+                                                      "health_personal_care",
+                                                      "grocery_gourmet_food",
+                                                      "toys_games",
+                                                      "beauty",
+                                                      "baby_products"
                                                       ])
 
 
@@ -59,13 +59,20 @@ def test_dataset_is_available(ds_req: DatasetRequest, client: TestClient):
 
 
 @pytest.mark.run(order=3)
+def test_dataset_metadata_is_available(ds_req: DatasetRequest, client: TestClient):
+    response = client.post("/dataset/metadata/", json=ds_req.dict())
+    assert response.status_code == status.HTTP_200_OK
+    assert DatasetMetadata.parse_obj(response.json())
+
+
+@pytest.mark.run(order=4)
 def test_dataset_remove(ds_req: DatasetRequest, client: TestClient):
     response = client.delete("/dataset/remove/", json=ds_req.dict())
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == BooleanResponse(value=True)
 
 
-@pytest.mark.run(order=4)
+@pytest.mark.run(order=5)
 def test_dataset_is_not_available(ds_req: DatasetRequest, client: TestClient):
     response = client.post("/dataset/available/", json=ds_req.dict())
     assert response.status_code == status.HTTP_200_OK

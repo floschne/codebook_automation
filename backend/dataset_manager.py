@@ -1,3 +1,4 @@
+import datetime as dt
 from typing import Union, Tuple, List
 
 import numpy as np
@@ -5,7 +6,7 @@ import pandas as pd
 import tensorflow as tf
 from fastapi import UploadFile
 
-from api.model import CodebookDTO, DatasetRequest
+from api.model import CodebookDTO, DatasetRequest, DatasetMetadata
 from logger import backend_logger
 from .data_handler import DataHandler
 from .exceptions import ErroneousDatasetException, DatasetNotAvailableException
@@ -26,6 +27,8 @@ class DatasetManager(object):
 
         try:
             path = DataHandler.store_dataset(cb=cb, dataset_archive=dataset_archive, dataset_version=dataset_version)
+            metadata = DatasetManager._generate_metadata(cb=cb, dataset_version=dataset_version)
+            metadata_path = DataHandler.store_dataset_metadata(cb=cb, dataset_metadata=metadata)
         except Exception as e:
             raise ErroneousDatasetException(dataset_version, cb,
                                             f"Error while persisting dataset for Codebook {cb.name}!", caused_by=str(e))
@@ -34,7 +37,8 @@ class DatasetManager(object):
             raise ErroneousDatasetException(dataset_version, cb,
                                             f"Error while persisting dataset for Codebook {cb.name} under {str(path)}")
         backend_logger.info(
-            f"Successfully persisted dataset '{dataset_version}' for Codebook <{cb.name}> under {str(path)}")
+            f"Successfully persisted dataset '{dataset_version}' for Codebook <{cb.name}> under {str(path)} and "
+            f"metadata under {metadata_path}")
         return True
 
     @staticmethod
@@ -100,8 +104,28 @@ class DatasetManager(object):
             return train_df, test_df
 
     @staticmethod
+    def _generate_metadata(cb: CodebookDTO, dataset_version: str = "default", ) -> DatasetMetadata:
+        backend_logger.info(f"Generating dataset '{dataset_version}' metadata file for Codebook <{cb.name}>")
+        # load and prepare the dataframes
+        train_df, test_df = DatasetManager._load_dataframes(cb, dataset_version)
+        train_set, test_set, label_categories = DatasetManager._prepare_dataframes(train_df, test_df)
+
+        return DatasetMetadata(codebook_name=cb.name,
+                               version=dataset_version,
+                               labels=dict(enumerate(label_categories)),
+                               num_training_samples=len(train_df),
+                               num_test_samples=len(test_df),
+                               created=str(dt.datetime.now())
+                               )
+
+    @staticmethod
+    def get_metadata(cb: CodebookDTO, dataset_version: str) -> DatasetMetadata:
+        metadata_file = DataHandler.get_dataset_directory(cb, dataset_version, False).joinpath('metadata.json')
+        return DatasetMetadata.parse_file(metadata_file)
+
+    @staticmethod
     def is_available(req: DatasetRequest) -> bool:
-        # TODO just ask redis is available w/o checking validity (maybe use flag to do so)
+        # TODO just query redis is available w/o checking validity (maybe use flag to do so)
         try:
             return DatasetManager._is_valid(req.cb, req.dataset_version)
         except DatasetNotAvailableException:

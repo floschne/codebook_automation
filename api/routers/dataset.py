@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Form, UploadFile, File
 
-from api.model import CodebookDTO, BooleanResponse, DatasetRequest
+from api.model import CodebookDTO, BooleanResponse, DatasetRequest, DatasetMetadata
 from backend.dataset_manager import DatasetManager
 from logger import api_logger
 
@@ -28,6 +28,12 @@ async def upload(codebook_name: str = Form(..., description="The name of the Cod
 async def is_available(req: DatasetRequest):
     api_logger.info(f"POST request on  {PREFIX}/is_available/ with DatasetRequest {req}")
     return BooleanResponse(value=DatasetManager.is_available(req))
+
+
+@router.post("/metadata/", response_model=DatasetMetadata, tags=["dataset"])
+async def get_metadata(req: DatasetRequest):
+    api_logger.info(f"POST request on  {PREFIX}/metadata/ with DatasetRequest {req}")
+    return DatasetManager.get_metadata(req.cb, req.dataset_version)
 
 
 @router.delete("/remove/", response_model=BooleanResponse, tags=["dataset"])

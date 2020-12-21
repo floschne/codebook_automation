@@ -1,14 +1,16 @@
+import datetime as dt
 import json
 import re
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Dict
 
 import tensorflow as tf
 from fastapi import UploadFile
 
-from api.model import CodebookDTO, ModelMetadata
+from api.model import CodebookDTO, ModelMetadata, TrainingRequest
 from logger import backend_logger
 from .data_handler import DataHandler
+from .dataset_manager import DatasetManager
 from .exceptions import ErroneousModelException, ModelMetadataNotAvailableException, ModelNotAvailableException, \
     NoDataForCodebookException, InvalidModelIdException
 
@@ -84,6 +86,28 @@ class ModelManager(object):
         if create:
             metadata_path.touch(exist_ok=True)
         return metadata_path
+
+    @staticmethod
+    def generate_metadata(r: TrainingRequest, eval_results: Dict[str, float], persist: bool = False) -> ModelMetadata:
+        backend_logger.info(f"Generating model metadata for model '{r.model_version}' of Codebook '{r.cb.name}'")
+
+        dataset_metadata = DatasetManager.get_metadata(r.cb, r.dataset_version)
+
+        metadata = ModelMetadata(
+            codebook_name=r.cb.name,
+            model_version=r.model_version,
+            dataset_version=r.dataset_version,
+            labels=dataset_metadata.labels,
+            model_type='DNNClassifier',  # TODO
+            evaluation=eval_results,
+            model_config=r.model_config.dict(),
+            created=str(dt.datetime.now())
+        )
+
+        if persist:
+            DataHandler.store_model_metadata(r.cb, metadata)
+
+        return metadata
 
     @staticmethod
     def store_uploaded_model(cb: CodebookDTO, model_version: str, model_archive: UploadFile) -> str:

@@ -11,6 +11,7 @@ from .tag_label_mapping import TagLabelMapping
 from .training_request import TrainingRequest
 from .training_response import TrainingResponse
 from .training_status import TrainingState, TrainingStatus
+from .dataset_metadata import DatasetMetadata
 
 __all__ = [CodebookDTO,
            DocumentDTO,
@@ -28,4 +29,5 @@ __all__ = [CodebookDTO,
            ActivationFunctionIdentifier,
            TrainingState,
            TrainingStatus,
-           DatasetRequest]
+           DatasetRequest,
+           DatasetMetadata]

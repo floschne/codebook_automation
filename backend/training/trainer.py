@@ -1,4 +1,3 @@
-import datetime as dt
 import json
 import logging
 import multiprocessing
@@ -13,7 +12,7 @@ import psutil
 import tensorflow as tf
 from loguru import logger
 
-from api.model import TrainingResponse, TrainingRequest, TrainingState, TrainingStatus, ModelMetadata
+from api.model import TrainingResponse, TrainingRequest, TrainingState, TrainingStatus
 from logger import backend_logger
 from .model_factory import ModelFactory
 from .. import DataHandler
@@ -121,30 +120,6 @@ def input_fn(r: TrainingRequest, train: bool = False):
         return test_ds
 
 
-def generate_model_metadata(r: TrainingRequest, model_id: str, eval_results: Dict[str, float]) -> Path:
-    backend_logger.info(f"Generating model metadata file for model<{model_id}>")
-    label_categories = DatasetManager.get_tensorflow_dataset(r.cb, r.dataset_version, get_labels_only=True)
-
-    # TODO store metadata in redis
-
-    metadata = ModelMetadata(
-        labels=dict(enumerate(label_categories)),
-        model_type='DNNClassifier',
-        evaluation=eval_results,
-        model_config=r.model_config.dict(),
-        timestamp=str(dt.datetime.now())
-    )
-
-    # persist
-    metadata_dst = ModelManager.get_metadata_path(model_id)
-    with open(metadata_dst, 'w') as fp:
-        print(metadata.json(), file=fp)
-    assert metadata_dst.exists()
-    backend_logger.info(f"Model metadata for model <{model_id}> persisted at {str(metadata_dst)}")
-
-    return metadata_dst
-
-
 def update_training_status(status_dict: Dict[str, TrainingStatus], mid: str, state: TrainingState, pid: int):
     status = TrainingStatus()
     status.state = state
@@ -196,8 +171,8 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         backend_logger.info(f"Starting evaluation of model <{mid}>")
         # updating training status
         update_training_status(status_dict, mid, TrainingState.evaluating, proc.pid)
-        results = model.evaluate(input_fn=lambda: input_fn(req, train=False), steps=req.max_steps_test)
-        res_pp = pp.pformat(results)
+        eval_results = model.evaluate(input_fn=lambda: input_fn(req, train=False), steps=req.max_steps_test)
+        res_pp = pp.pformat(eval_results)
         backend_logger.info(f"Evaluation results of model <{mid}>:\n {res_pp}")
 
         # export # TODO this should be moved to ModelFactory
@@ -207,13 +182,10 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         # create serving function
         serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(
             tf.feature_column.make_parse_example_spec([embedding_layer]))
-        # create model meta data
-        metadata_path = generate_model_metadata(r=req, model_id=mid, eval_results=results)
         # finally, persist model # TODO this should be moved to DataHandler
         dst = DataHandler.get_model_directory(req.cb, req.model_version, create=True)
         estimator_path = model.export_saved_model(str(dst),
-                                                  serving_input_fn,
-                                                  assets_extra={'model_metadata.json': str(metadata_path)})
+                                                  serving_input_fn)
         estimator_path = estimator_path.decode('utf-8')
         backend_logger.info(f"Tensorflow exported model successfully at {estimator_path}")
         # move the exported model files to the mode dir (see export_saved_model docs)
@@ -221,6 +193,9 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         files = [f for f in Path(estimator_path).iterdir()]
         for f in files:
             shutil.move(str(f), str(f.parent.parent))
+
+        # generate and persist model meta data
+        ModelManager.generate_metadata(req, eval_results, persist=True)
 
         # TODO exception if fails
         assert ModelManager.is_available(req.cb, req.model_version)

@@ -7,7 +7,7 @@ from zipfile import ZipFile
 
 from fastapi import UploadFile
 
-from api.model import CodebookDTO
+from api.model import CodebookDTO, DatasetMetadata, ModelMetadata
 from logger import backend_logger
 from .exceptions import DatasetNotAvailableException
 from .exceptions import ModelNotAvailableException
@@ -77,6 +77,16 @@ class DataHandler(object):
             dataset_archive.file.close()
 
     @staticmethod
+    def store_dataset_metadata(cb: CodebookDTO, dataset_metadata: DatasetMetadata) -> Path:
+        ds_dir = DataHandler.get_dataset_directory(cb, dataset_version=dataset_metadata.version, create=False)
+        dst = ds_dir.joinpath('metadata.json')
+        with open(dst, 'w') as out:
+            backend_logger.info(f"Storing dataset metadata at {str(dst)}")
+            print(dataset_metadata.json(), file=out)
+        assert dst.exists() and DatasetMetadata.parse_file(dst) == dataset_metadata  # TODO exception
+        return dst
+
+    @staticmethod
     def store_model(cb: CodebookDTO, model_archive: UploadFile, model_version: str) -> Path:
         try:
             model_dir = DataHandler.get_model_directory(cb, model_version=model_version, create=True)
@@ -86,6 +96,16 @@ class DataHandler(object):
             return DataHandler._extract_archive(archive=archive_path, dst=model_dir)
         finally:
             model_archive.file.close()
+
+    @staticmethod
+    def store_model_metadata(cb: CodebookDTO, model_metadata: ModelMetadata) -> Path:
+        model_dir = DataHandler.get_model_directory(cb, model_version=model_metadata.model_version, create=False)
+        dst = model_dir.joinpath('metadata.json')
+        with open(dst, 'w') as out:
+            backend_logger.info(f"Storing model metadata at {str(dst)}")
+            print(model_metadata.json(), file=out)
+        assert dst.exists() and ModelMetadata.parse_file(dst) == model_metadata  # TODO exception
+        return dst
 
     @staticmethod
     def get_dataset_directory(cb: CodebookDTO, dataset_version: str = "default", create: bool = False) -> Path:
