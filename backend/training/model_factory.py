@@ -26,7 +26,7 @@ class ModelFactory(object):
             Tuple[tf.estimator.DNNClassifier, DenseFeatureColumn, str]:
 
         # TODO remove if available or other strategy
-        model_dir = DataHandler.get_model_directory(req.cb, req.model_version, create=True)
+        model_dir = DataHandler.get_model_directory(req.cb_name, req.model_version, create=True)
 
         # TODO config in file
         run_config = tf.estimator.RunConfig(model_dir=model_dir,
@@ -41,7 +41,7 @@ class ModelFactory(object):
                                                dropout=conf.dropout,
                                                optimizer=conf.optimizer,
                                                config=run_config)
-        model_id = ModelManager.get_model_id(req.cb, req.model_version, req.dataset_version)
+        model_id = ModelManager.get_model_id(req.cb_name, req.model_version, req.dataset_version)
 
         return estimator, feature_columns[0], model_id
 

@@ -8,7 +8,7 @@ sys.path.append(str(os.getcwd()))
 from fastapi.testclient import TestClient
 
 from main import app
-from api.model import BooleanResponse, CodebookDTO, DatasetRequest, DatasetMetadata
+from api.model import BooleanResponse, DatasetRequest, DatasetMetadata
 
 
 @pytest.fixture
@@ -17,14 +17,8 @@ def client() -> TestClient:
 
 
 @pytest.fixture
-def cb() -> CodebookDTO:
-    return CodebookDTO(name="ProductTypeTest1", tags=["pet_supplies",
-                                                      "health_personal_care",
-                                                      "grocery_gourmet_food",
-                                                      "toys_games",
-                                                      "beauty",
-                                                      "baby_products"
-                                                      ])
+defcb_name() -> str:
+    return "ProductTypeTest1"
 
 
 @pytest.fixture
@@ -33,17 +27,16 @@ def dsv() -> str:
 
 
 @pytest.fixture
-def ds_req(cb: CodebookDTO, dsv: str) -> DatasetRequest:
-    return DatasetRequest(cb=cb, dataset_version=dsv)
+def ds_req(cb_name: str, dsv: str) -> DatasetRequest:
+    return DatasetRequest(cb_name=cb_name, dataset_version=dsv)
 
 
 @pytest.mark.run(order=1)
-def test_dataset_upload(cb: CodebookDTO, dsv: str, client: TestClient):
+def test_dataset_upload(cb_name: str, dsv: str, client: TestClient):
     with open(os.getcwd() + '/test/resources/product_type_ds.zip', "rb") as f:
         archive = f.read()
         response = client.put('/dataset/upload/',
-                              data={"codebook_name": cb.name,
-                                    "codebook_tag_list": ",".join(cb.tags),
+                              data={"codebook_name": cb_name ,
                                     "dataset_version": dsv},
                               files={"dataset_archive": ("product_type_ds.zip", archive)})
 

@@ -10,7 +10,7 @@ sys.path.append(str(os.getcwd()))
 from fastapi.testclient import TestClient
 
 from main import app
-from api.model import BooleanResponse, CodebookDTO, ModelConfig, TrainingRequest
+from api.model import BooleanResponse, ModelConfig, TrainingRequest
 
 
 @pytest.fixture
@@ -19,14 +19,8 @@ def client() -> TestClient:
 
 
 @pytest.fixture
-def cb() -> CodebookDTO:
-    return CodebookDTO(name="ProductTypeTest1", tags=["pet_supplies",
-                                                        "health_personal_care",
-                                                        "grocery_gourmet_food",
-                                                        "toys_games",
-                                                        "beauty",
-                                                        "baby_products"
-                                                      ])
+defcb_name() -> str:
+    return "ProductTypeTest1"
 
 
 @pytest.fixture
@@ -50,8 +44,8 @@ def mv() -> str:
 
 
 @pytest.fixture
-def train_req(cb: CodebookDTO, model_conf: ModelConfig, mv: str, dsv: str) -> TrainingRequest:
-    return TrainingRequest(cb=cb,
+def train_req(cb_name: str, model_conf: ModelConfig, mv: str, dsv: str) -> TrainingRequest:
+    return TrainingRequest(cb_name=cb_name,
                            model_config=model_conf,
                            model_version=mv,
                            dataset_version=dsv,
@@ -62,14 +56,13 @@ def train_req(cb: CodebookDTO, model_conf: ModelConfig, mv: str, dsv: str) -> Tr
 
 
 @pytest.mark.run(order=1)
-def test_dataset_upload(cb: CodebookDTO, dsv: str, client: TestClient):
+def test_dataset_upload(cb_name: str, dsv: str, client: TestClient):
     # TODO redundant code
 
     with open(os.getcwd() + '/test/resources/product_type_ds.zip', "rb") as f:
         archive = f.read()
         response = client.put('/dataset/upload/',
-                              data={"codebook_name": cb.name,
-                                    "codebook_tag_list": ",".join(cb.tags),
+                              data={"codebook_name": cb_name ,
                                     "dataset_version": dsv},
                               files={"dataset_archive": ("product_type_ds.zip", archive)})
 
@@ -83,6 +76,6 @@ def test_train(train_req: TrainingRequest, client: TestClient):
     response = client.post('/training/train/', json=train_req.dict())
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"model_id": ModelManager.get_model_id(train_req.cb,
+    assert response.json() == {"model_id": ModelManager.get_model_id(train_req.cb_name ,
                                                                      train_req.model_version,
                                                                      train_req.dataset_version)}

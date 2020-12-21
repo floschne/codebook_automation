@@ -60,23 +60,23 @@ class Trainer(object):
         #  - set max number of active processes implement a job queue
 
         # remove model if another with same version exists!
-        if ModelManager.is_available(request.cb, request.model_version):
-            backend_logger.warning(f"Model {request.model_version} for Codebook '{request.cb.name}' already exists!")
-            ModelManager.remove(cb=request.cb, model_version=request.model_version)
+        if ModelManager.is_available(request.cb_name, request.model_version):
+            backend_logger.warning(f"Model {request.model_version} for Codebook '{request.cb_name}' already exists!")
+            ModelManager.remove(cb_name=request.cb_name, model_version=request.model_version)
 
         with Manager() as manager:
-            backend_logger.info(f"Spawning new process for train-eval-export cycle for Codebook <{request.cb.name}>")
+            backend_logger.info(f"Spawning new process for train-eval-export cycle for Codebook <{request.cb_name}>")
             p = Process(target=train_eval_export, args=(request, Trainer._status_dict, Trainer._active_pids))
             p.start()
 
-        model_id = ModelManager.get_model_id(request.cb, request.model_version, request.dataset_version)
+        model_id = ModelManager.get_model_id(request.cb_name, request.model_version, request.dataset_version)
         return TrainingResponse(model_id=model_id)
 
     @staticmethod
     def get_training_log(resp: TrainingResponse, create: bool = False) -> Path:
         # TODO change method signature
-        cb_id, model_version, _ = ModelManager.parse_model_id(resp.model_id)
-        model_dir = DataHandler.get_model_dir_from_id(cb_id=cb_id, model_version=model_version, create=create)
+        cb_name, model_version, _ = ModelManager.parse_model_id(resp.model_id)
+        model_dir = DataHandler.get_model_directory(cb_name=cb_name, model_version=model_version, create=create)
         log_path = model_dir.joinpath("training.log")
         if create:
             log_path.touch()
@@ -111,7 +111,7 @@ def input_fn(r: TrainingRequest, train: bool = False):
     # https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator#eager_compatibility
 
     # create tf datasets (we have to load them in the input fn otherwise we get an EagerExecution problem)
-    train_ds, test_ds, label_categories = DatasetManager.get_tensorflow_dataset(r.cb, r.dataset_version)
+    train_ds, test_ds, label_categories = DatasetManager.get_tensorflow_dataset(r.cb_name, r.dataset_version)
     if train:
         train_ds = train_ds.shuffle(256).batch(r.batch_size_train).repeat()
         return train_ds
@@ -130,7 +130,7 @@ def update_training_status(status_dict: Dict[str, TrainingStatus], mid: str, sta
 @logger.catch
 def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatus], active_pids: Dict[int, str]):
     # TODO use redis or similar to persist status and logs etc
-    mid = ModelManager.get_model_id(req.cb, req.model_version, req.dataset_version)
+    mid = ModelManager.get_model_id(req.cb_name, req.model_version, req.dataset_version)
     proc = multiprocessing.current_process()
     # add pid to active pids
     active_pids[proc.pid] = mid
@@ -154,12 +154,10 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         backend_logger.addHandler(intercept_handler)
 
         # create model
-        backend_logger.info(f"Building model <{req.model_version}> for Codebook <{req.cb.name}> with model config"
+        backend_logger.info(f"Building model <{req.model_version}> for Codebook <{req.cb_name}> with model config"
                             f"<{req.model_config}>. ModelID: <{mid}>")
-        # TODO
-        #  n_classes could be another value than len(request.cb.tags) !!!
-        #  => get this info efficiently (w/o loading the DS)
-        model, embedding_layer, mid = ModelFactory.build_model(req, n_classes=len(req.cb.tags))
+        dataset_metadata = DatasetManager.get_metadata(req.cb_name, req.dataset_version)
+        model, embedding_layer, mid = ModelFactory.build_model(req, n_classes=len(dataset_metadata.labels))
 
         # train model
         backend_logger.info(f"Starting training of model <{mid}>")
@@ -183,7 +181,7 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(
             tf.feature_column.make_parse_example_spec([embedding_layer]))
         # finally, persist model # TODO this should be moved to DataHandler
-        dst = DataHandler.get_model_directory(req.cb, req.model_version, create=True)
+        dst = DataHandler.get_model_directory(req.cb_name, req.model_version, create=True)
         estimator_path = model.export_saved_model(str(dst),
                                                   serving_input_fn)
         estimator_path = estimator_path.decode('utf-8')
@@ -198,7 +196,7 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         ModelManager.generate_metadata(req, eval_results, persist=True)
 
         # TODO exception if fails
-        assert ModelManager.is_available(req.cb, req.model_version)
+        assert ModelManager.is_available(req.cb_name, req.model_version)
         backend_logger.info(f"Successfully exported model <{mid}> at {estimator_path}")
 
         backend_logger.info(f"Completed train-eval-export cycle for model <{mid}>")

@@ -5,7 +5,6 @@ sys.path.append(str(os.getcwd()))
 
 import pytest
 
-from test.utils import create_dummy_codebook_models
 from backend.data_handler import DataHandler
 from backend.exceptions import NoDataForCodebookException
 
@@ -16,7 +15,7 @@ def dh():
 
 
 def test_get_and_purge_data_directory(dh: DataHandler):
-    cb1, cb2 = create_dummy_codebook_models(2)
+    cb1, cb2 = "CB1", "CB2"
 
     # raise exception of the data dirs don't exist
     with pytest.raises(NoDataForCodebookException):
