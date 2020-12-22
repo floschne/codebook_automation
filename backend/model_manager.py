@@ -7,7 +7,7 @@ from fastapi import UploadFile
 
 from api.model import ModelMetadata, TrainingRequest
 from logger import backend_logger
-from . import RedisHandler
+from .db.redis_handler import RedisHandler
 from .data_handler import DataHandler
 from .dataset_manager import DatasetManager
 from .exceptions import ErroneousModelException, ModelNotAvailableException, NoDataForCodebookException, \
@@ -35,7 +35,7 @@ class ModelManager(object):
         """
         try:
             if not complete_check:
-                return RedisHandler.get_model_metadata(cb_name=cb_name, model_version=model_version) is not None
+                return RedisHandler().get_model_metadata(cb_name=cb_name, model_version=model_version) is not None
             else:
                 model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version)
                 return tf.saved_model.contains_saved_model(model_dir)
@@ -69,7 +69,7 @@ class ModelManager(object):
         """
         try:
             if from_cache:
-                return RedisHandler.get_model_metadata(cb_name, model_version)
+                return RedisHandler().get_model_metadata(cb_name, model_version)
             else:
                 return DataHandler.get_model_metadata(cb_name, model_version)
         except Exception:
@@ -89,12 +89,11 @@ class ModelManager(object):
             labels=dataset_metadata.labels,
             model_type='DNNClassifier',  # TODO
             evaluation=eval_results,
-            model_config=r.model_config.dict(),
-            created=str(dt.datetime.now())
+            model_config=r.model_config.dict()
         )
 
         DataHandler.store_model_metadata(r.cb_name, metadata)
-        RedisHandler.register_model(r.cb_name, metadata)
+        RedisHandler().register_model(r.cb_name, metadata)
 
         return metadata
 
@@ -118,7 +117,7 @@ class ModelManager(object):
     @staticmethod
     def remove(cb_name: str, model_version: str):
         backend_logger.info(f"Removing model '{model_version}' of Codebook {cb_name}")
-        RedisHandler.unregister_model(cb_name, model_version)
+        RedisHandler().unregister_model(cb_name, model_version)
         DataHandler.purge_model_directory(cb_name, model_version)
         return True
 

@@ -9,4 +9,3 @@ class DatasetMetadata(BaseModel):
     labels: Dict[str, str]
     num_training_samples: int
     num_test_samples: int
-    created: str

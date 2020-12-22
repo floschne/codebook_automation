@@ -11,4 +11,3 @@ class ModelMetadata(BaseModel):
     model_type: str
     evaluation: Dict[str, float]
     model_config: Dict[Any, Any]
-    created: str

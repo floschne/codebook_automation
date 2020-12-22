@@ -41,7 +41,7 @@ def test_dataset_upload(cb_name: str, dsv: str, client: TestClient):
                               files={"dataset_archive": ("product_type_ds.zip", archive)})
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json() == BooleanResponse(value=True)
+        assert isinstance(DatasetMetadata.parse_obj(response.json()), DatasetMetadata)
 
 
 @pytest.mark.run(order=2)
@@ -55,7 +55,7 @@ def test_dataset_is_available(ds_req: DatasetRequest, client: TestClient):
 def test_dataset_metadata_is_available(ds_req: DatasetRequest, client: TestClient):
     response = client.post("/dataset/metadata/", json=ds_req.dict())
     assert response.status_code == status.HTTP_200_OK
-    assert DatasetMetadata.parse_obj(response.json())
+    assert isinstance(DatasetMetadata.parse_obj(response.json()), DatasetMetadata)
 
 
 @pytest.mark.run(order=4)
