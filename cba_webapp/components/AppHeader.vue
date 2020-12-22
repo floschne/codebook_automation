@@ -9,11 +9,14 @@
 
       <b-collapse id="nav-collapse" is-nav>
         <b-navbar-nav>
+          <b-nav-item to="/datasets">
+            Datasets
+          </b-nav-item>
           <b-nav-item to="/training">
             Training
           </b-nav-item>
-          <b-nav-item to="/model">
-            Model
+          <b-nav-item to="/models">
+            Models
           </b-nav-item>
           <b-nav-item to="/prediction">
             Prediction

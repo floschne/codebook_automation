@@ -30,6 +30,7 @@
 
 <script>
 import TrainingForm from '@/components/TrainingForm'
+
 export default {
   name: 'TrainModel',
   components: {
@@ -69,7 +70,7 @@ export default {
       await this.checkDatasetAvailable()
     },
     async checkDatasetAvailable () {
-      this.datasetAvailable = await this.$datasetApiClient.available(this.trainingFormData)
+      this.datasetAvailable = await this.$datasetApiClient.available(this.trainingFormData.cb_name, this.trainingFormData.dataset_version)
       this.showAlert = true
     },
     async startTraining () {

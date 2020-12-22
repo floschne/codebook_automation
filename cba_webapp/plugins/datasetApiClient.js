@@ -1,5 +1,3 @@
-import DatasetMetadata from '@/plugins/models'
-
 export default ({
   app,
   axios
@@ -28,7 +26,7 @@ export default ({
         formData.append('dataset_archive', modelFormData.archive, modelFormData.archive.name)
 
         const resp = await app.$axios.put('/api/dataset/upload/', formData, multipartHeaderConfig)
-        metadata = new DatasetMetadata(resp.data)
+        metadata = resp.data
       } catch (err) {
         metadata = null
         console.error(err)
@@ -55,7 +53,7 @@ export default ({
       try {
         const resp = await app.$axios.get(`/api/dataset/metadata/?cb_name=${cbName}&dataset_version=${dsVersion}`, jsonHeaderConfig)
         if (resp.status === 200) {
-          metadata = new DatasetMetadata(resp.data)
+          metadata = resp.data
         } else {
           metadata = null
         }
@@ -70,7 +68,7 @@ export default ({
       try {
         const resp = await app.$axios.get(`/api/dataset/list/?cb_name=${cbName}`, jsonHeaderConfig)
         if (resp.status === 200) {
-          datasets = resp.data.map(data => new DatasetMetadata(data))
+          datasets = resp.data
         } else {
           datasets = []
         }

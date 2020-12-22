@@ -18,7 +18,7 @@
 import ModelIdForm from '@/components/ModelIdForm'
 
 export default {
-  name: 'CheckTrainingStatus',
+  name: 'TrainingStatus',
   components: { ModelIdForm },
   data () {
     return {

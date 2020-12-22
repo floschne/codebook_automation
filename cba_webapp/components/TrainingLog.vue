@@ -14,7 +14,7 @@
         class="border border-danger rounded train-log-editor"
         :highlight="highlighter"
         line-numbers
-        readonly="true"
+        readonly
       />
     </b-row>
   </div>
@@ -32,7 +32,7 @@ import 'prismjs/themes/prism-twilight.css'
 import ModelIdForm from '@/components/ModelIdForm'
 
 export default {
-  name: 'ViewTrainingLog',
+  name: 'TrainingLog',
   components: {
     ModelIdForm,
     PrismEditor

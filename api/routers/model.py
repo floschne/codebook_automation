@@ -26,9 +26,9 @@ async def get_metadata(cb_name: str, model_version: str):
 
 
 @router.get("/list/", response_model=List[ModelMetadata], tags=["model"])
-async def list_models(cb_name: str, model_version: str):
+async def list_models(cb_name: str):
     api_logger.info(
-        f"POST request on {PREFIX}/list with model version '{model_version}'for Codebook {cb_name}")
+        f"POST request on {PREFIX}/list with Codebook {cb_name}")
     return ModelManager.list_models(cb_name)
 
 

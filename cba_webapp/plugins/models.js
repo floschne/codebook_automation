@@ -1,4 +1,5 @@
 export default () => {
+  // eslint-disable-next-line no-unused-vars
   class DatasetMetadata {
     constructor (respData) {
       this.codebookName = respData.codebook_name
@@ -20,6 +21,7 @@ export default () => {
     }
   }
 
+  // eslint-disable-next-line no-unused-vars
   class ModelMetadata {
     constructor (respData) {
       this.codebookName = respData.codebook_name

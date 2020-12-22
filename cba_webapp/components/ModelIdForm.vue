@@ -20,7 +20,7 @@
         />
         <b-input-group-append>
           <b-button variant="primary" @click="submitModelId">
-            Get Log
+            Get
           </b-button>
         </b-input-group-append>
         <b-form-invalid-feedback id="input-model-id-feedback">
@@ -34,7 +34,7 @@
 <script>
 export default {
   name: 'ModelIdForm',
-  emits: ['model-id-submit'],
+  emits: ['models-id-submit'],
   data () {
     return {
       model_id: ''
@@ -42,7 +42,7 @@ export default {
   },
   computed: {
     modelIdInputState () {
-      return !!this.model_id.match(/[a-z0-9]_[a-f0-9]{32}_m_[A-za-z0-9]+_d_[A-za-z0-9]+/)
+      return !!this.model_id.match(/[A-Za-z0-9]_mv_[A-Za-z0-9]+_dv_[A-Za-z0-9]+/)
     }
   },
   methods: {
