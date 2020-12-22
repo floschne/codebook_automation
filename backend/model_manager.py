@@ -1,6 +1,6 @@
 import datetime as dt
 import re
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 
 import tensorflow as tf
 from fastapi import UploadFile
@@ -116,10 +116,21 @@ class ModelManager(object):
 
     @staticmethod
     def remove(cb_name: str, model_version: str):
-        backend_logger.info(f"Removing model '{model_version}' of Codebook {cb_name}")
-        RedisHandler().unregister_model(cb_name, model_version)
-        DataHandler.purge_model_directory(cb_name, model_version)
-        return True
+        try:
+            backend_logger.info(f"Removing model '{model_version}' of Codebook {cb_name}")
+            RedisHandler().unregister_model(cb_name, model_version)
+            DataHandler.purge_model_directory(cb_name, model_version)
+            return True
+        except Exception as e:
+            return False
+
+
+    @staticmethod
+    def list_models(cb_name) -> List[ModelMetadata]:
+        try:
+            return RedisHandler().list_models(cb_name)
+        except Exception as e:
+            return []
 
     @staticmethod
     def build_model_id(cb_name: str, model_version: str = "default", dataset_version: str = "default") -> str:

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, UploadFile, File, Form
 
@@ -11,18 +11,25 @@ PREFIX = "/model"
 router = APIRouter()
 
 
-@router.post("/available/", response_model=BooleanResponse, tags=["model"])
-async def is_available(cb_name: str, model_version: Optional[str] = "default"):
+@router.get("/available/", response_model=BooleanResponse, tags=["model"])
+async def is_available(cb_name: str, model_version: str):
     api_logger.info(
         f"POST request on {PREFIX}/available with model version '{model_version}'for Codebook {cb_name}")
     return BooleanResponse(value=ModelManager.is_available(cb_name=cb_name, model_version=model_version))
 
 
-@router.post("/metadata/", response_model=ModelMetadata, tags=["model"])
-async def get_metadata(cb_name: str, model_version: Optional[str] = "default"):
+@router.get("/metadata/", response_model=ModelMetadata, tags=["model"])
+async def get_metadata(cb_name: str, model_version: str):
     api_logger.info(
         f"POST request on {PREFIX}/metadata with model version '{model_version}'for Codebook {cb_name}")
     return ModelManager.get_metadata(cb_name, model_version=model_version)
+
+
+@router.get("/list/", response_model=List[ModelMetadata], tags=["model"])
+async def list_models(cb_name: str, model_version: str):
+    api_logger.info(
+        f"POST request on {PREFIX}/list with model version '{model_version}'for Codebook {cb_name}")
+    return ModelManager.list_models(cb_name)
 
 
 @router.put("/upload/", response_model=StringResponse, tags=["model"], deprecated=True)

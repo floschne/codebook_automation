@@ -1,4 +1,3 @@
-import datetime as dt
 from typing import Union, Tuple, List
 
 import numpy as np
@@ -6,10 +5,10 @@ import pandas as pd
 import tensorflow as tf
 from fastapi import UploadFile
 
-from api.model import DatasetRequest, DatasetMetadata
+from api.model import DatasetMetadata
 from logger import backend_logger
-from .db.redis_handler import RedisHandler
 from .data_handler import DataHandler
+from .db.redis_handler import RedisHandler
 from .exceptions import ErroneousDatasetException, DatasetNotAvailableException
 
 
@@ -131,11 +130,9 @@ class DatasetManager(object):
             return DatasetMetadata.parse_file(metadata_file)
 
     @staticmethod
-    def is_available(req: DatasetRequest, complete_check: bool = False) -> bool:
+    def is_available(cb_name: str, dataset_version: str, complete_check: bool = False) -> bool:
 
         try:
-            cb_name = req.cb_name
-            dataset_version = req.dataset_version
             is_in_cache = RedisHandler().get_dataset_metadata(cb_name, dataset_version=dataset_version) is not None
             if complete_check:
                 return is_in_cache and DatasetManager._is_valid(cb_name, dataset_version)
@@ -151,13 +148,18 @@ class DatasetManager(object):
         return ("text" and "label" in train_df) and ("text" and "label" in test_df)
 
     @staticmethod
-    def remove(req: DatasetRequest):
+    def remove(cb_name: str, dataset_version: str):
         try:
-            cb_name = req.cb_name
-            dataset_version = req.dataset_version
             backend_logger.info(f"Removing dataset '{dataset_version}' of Codebook {cb_name}")
             RedisHandler().unregister_dataset(cb_name, dataset_version)
             DataHandler.purge_dataset_directory(cb_name=cb_name, dataset_version=dataset_version)
             return True
         except Exception as e:
             return False
+
+    @staticmethod
+    def list_datasets(cb_name) -> List[DatasetMetadata]:
+        try:
+            return RedisHandler().list_datasets(cb_name)
+        except Exception as e:
+            return []

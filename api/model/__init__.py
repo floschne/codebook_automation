@@ -1,6 +1,5 @@
 from .boolean_response import BooleanResponse
 from .dataset_metadata import DatasetMetadata
-from .dataset_request import DatasetRequest
 from .document_dto import DocumentDTO
 from .model_config import ModelConfig, OptimizerIdentifier, ActivationFunctionIdentifier
 from .model_metadata import ModelMetadata
@@ -27,5 +26,4 @@ __all__ = [DocumentDTO,
            ActivationFunctionIdentifier,
            TrainingState,
            TrainingStatus,
-           DatasetRequest,
            DatasetMetadata]
