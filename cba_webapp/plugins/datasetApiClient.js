@@ -1,3 +1,5 @@
+import DatasetMetadata from '@/plugins/models'
+
 export default ({
   app,
   axios
@@ -17,31 +19,26 @@ export default ({
   // define the methods
   const datasetApiClient = {
     upload: async (modelFormData) => {
-      let success
+      let metadata = null
       try {
         // create form data
         const formData = new FormData()
-        formData.append('codebook_name', modelFormData.name)
-        formData.append('codebook_tag_list', modelFormData.tags) // TODO
+        formData.append('cb_name', modelFormData.name)
         formData.append('dataset_version', modelFormData.version)
         formData.append('dataset_archive', modelFormData.archive, modelFormData.archive.name)
 
         const resp = await app.$axios.put('/api/dataset/upload/', formData, multipartHeaderConfig)
-        success = resp.data.value
+        metadata = new DatasetMetadata(resp.data)
       } catch (err) {
-        success = false
+        metadata = null
         console.error(err)
       }
-      return success
+      return metadata
     },
-    available: async (reqData) => {
-      let datasetAvailable
-      const dsAvailableReqData = {
-        dataset_version: reqData.dataset_version,
-        cb: reqData.cb
-      }
+    available: async (cbName, dsVersion) => {
+      let datasetAvailable = false
       try {
-        const resp = await app.$axios.post('/api/dataset/available/', dsAvailableReqData, jsonHeaderConfig)
+        const resp = await app.$axios.get(`/api/dataset/available/?cb_name=${cbName}&dataset_version=${dsVersion}`, jsonHeaderConfig)
         if (resp.status === 200) {
           datasetAvailable = resp.data.value
         } else {
@@ -53,7 +50,51 @@ export default ({
       }
       return datasetAvailable
     },
-    remove: dsFormData => false // TODO
+    metadata: async (cbName, dsVersion) => {
+      let metadata = null
+      try {
+        const resp = await app.$axios.get(`/api/dataset/metadata/?cb_name=${cbName}&dataset_version=${dsVersion}`, jsonHeaderConfig)
+        if (resp.status === 200) {
+          metadata = new DatasetMetadata(resp.data)
+        } else {
+          metadata = null
+        }
+      } catch (error) {
+        metadata = false
+        console.error(error)
+      }
+      return metadata
+    },
+    list: async (cbName) => {
+      let datasets = []
+      try {
+        const resp = await app.$axios.get(`/api/dataset/list/?cb_name=${cbName}`, jsonHeaderConfig)
+        if (resp.status === 200) {
+          datasets = resp.data.map(data => new DatasetMetadata(data))
+        } else {
+          datasets = []
+        }
+      } catch (error) {
+        datasets = []
+        console.error(error)
+      }
+      return datasets
+    },
+    remove: async (cbName, dsVersion) => {
+      let success = false
+      try {
+        const resp = await app.$axios.delete(`/api/dataset/remove/?cb_name=${cbName}&dataset_version=${dsVersion}`, jsonHeaderConfig)
+        if (resp.status === 200) {
+          success = resp.data.value
+        } else {
+          success = false
+        }
+      } catch (error) {
+        success = false
+        console.error(error)
+      }
+      return success
+    }
   }
 
   // inject methods so that they can be called in any component or function with app.$datasetApiClient.

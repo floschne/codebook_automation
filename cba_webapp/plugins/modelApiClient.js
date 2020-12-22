@@ -1,3 +1,5 @@
+import ModelMetadata from '@/plugins/models'
+
 export default ({
   app,
   axios
@@ -16,36 +18,27 @@ export default ({
 
   // define the methods
   const modelApiClient = {
-    // TODO refactor signature to be more expressive and readable
-    upload: async (formData) => {
-      let modelId
+    upload: async (modelFormData) => {
+      let metadata = null
       try {
         // create form data
-        const reqData = new FormData()
-        reqData.append('codebook_name', formData.name)
-        reqData.append('codebook_tag_list', formData.tags)
-        reqData.append('model_version', formData.version)
-        reqData.append('model_archive', formData.archive, formData.archive.name)
+        const formData = new FormData()
+        formData.append('cb_name', modelFormData.name)
+        formData.append('model_version', modelFormData.version)
+        formData.append('model_archive', modelFormData.archive, modelFormData.archive.name)
 
-        const resp = await app.$axios.put('/api/dataset/upload/', reqData, multipartHeaderConfig)
-        if (resp.status === 200) {
-          modelId = resp.data.value
-        } else {
-          modelId = null
-        }
+        const resp = await app.$axios.put('/api/model/upload/', formData, multipartHeaderConfig)
+        metadata = new ModelMetadata(resp.data)
       } catch (err) {
-        modelId = null
+        metadata = null
         console.error(err)
       }
-      return modelId
+      return metadata
     },
-    available: async (formData) => {
-      let modelAvailable
+    available: async (cbName, mVersion) => {
+      let modelAvailable = false
       try {
-        const resp = await app.$axios.post(`/api/model/available/?model_version=${formData.version}`, {
-          name: formData.name,
-          tags: formData.tags
-        }, jsonHeaderConfig)
+        const resp = await app.$axios.get(`/api/model/available/?cb_name=${cbName}&model_version=${mVersion}`, jsonHeaderConfig)
         if (resp.status === 200) {
           modelAvailable = resp.data.value
         } else {
@@ -57,27 +50,51 @@ export default ({
       }
       return modelAvailable
     },
-    metadata: async (formData) => {
+    metadata: async (cbName, mVersion) => {
+      let metadata = null
       try {
-        const resp = await app.$axios.post(`/api/model/metadata/?model_version=${formData.version}`, {
-          name: formData.name,
-          tags: formData.tags
-        }, jsonHeaderConfig)
-        console.log('akk')
-        console.log(JSON.stringify(resp))
-
-        // TODO error handling if not 200
+        const resp = await app.$axios.get(`/api/model/metadata/?cb_name=${cbName}&model_version=${mVersion}`, jsonHeaderConfig)
         if (resp.status === 200) {
-          return resp.data
+          metadata = new ModelMetadata(resp.data)
         } else {
-          return null
+          metadata = null
         }
-      } catch (err) {
-        console.error(err) // TODO 404 is not an error in the case there is no model.. change this!
-        return null
+      } catch (error) {
+        metadata = false
+        console.error(error)
       }
+      return metadata
     },
-    remove: formData => false // TODO
+    list: async (cbName) => {
+      let datasets = []
+      try {
+        const resp = await app.$axios.get(`/api/model/list/?cb_name=${cbName}`, jsonHeaderConfig)
+        if (resp.status === 200) {
+          datasets = resp.data.map(data => new ModelMetadata(data))
+        } else {
+          datasets = []
+        }
+      } catch (error) {
+        datasets = []
+        console.error(error)
+      }
+      return datasets
+    },
+    remove: async (cbName, mVersion) => {
+      let success = false
+      try {
+        const resp = await app.$axios.delete(`/api/model/remove/?cb_name=${cbName}&model_version=${mVersion}`, jsonHeaderConfig)
+        if (resp.status === 200) {
+          success = resp.data.value
+        } else {
+          success = false
+        }
+      } catch (error) {
+        success = false
+        console.error(error)
+      }
+      return success
+    }
   }
 
   // inject methods so that they can be called in any component or function with this.$modelApiClient.
