@@ -3,14 +3,13 @@
     "api_port": 8081
   },
   "backend": {
-    "data_base_path_env_var": "DATA_ROOT",
+    "data_root_env_var": "CBA_API_DATA_ROOT",
     "use_gpu_for_prediction": 0,
     "use_gpu_for_training": 0,
 
     "redis": {
-      "host": "localhost",
-      "port": 6379,
-      "db_index": 1
+      "host_env_var": "CBA_API_REDIS_HOST",
+      "port_env_var": "CBA_API_REDIS_PORT"
     }
   }
 }

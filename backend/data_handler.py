@@ -27,10 +27,10 @@ class DataHandler(object):
             cls._singleton = super(DataHandler, cls).__new__(cls)
 
             # read the data base path from config and 'validate' it
-            config = json.load(open("config.json", "r"))
-            env_var = config['backend']['data_base_path_env_var']
+            config = json.load(open("config/config.json", "r"))
+            env_var = config['backend']['data_root_env_var']
             env_var = os.getenv(env_var, None)
-            assert env_var is not None and env_var != "", "DATA_BASE_PATH environment variable not set!"
+            assert env_var is not None and env_var != "", f"{env_var} environment variable not set!"
             env_var = env_var.strip()
             cls._DATA_ROOT = Path(env_var)
 

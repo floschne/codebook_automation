@@ -1,31 +1,45 @@
 const proxyConfig = () => {
   let proxyTarget = ''
 
-  if (process.env.CBA_DEPLOY === 'local') {
+  if (process.env.CBA_APP_DEPLOY === 'local') {
     proxyTarget = 'http://localhost:8081/'
   } else {
-    const dockerApiHost = process.env.CBA_API_HOST
-    const dockerApiPort = process.env.CBA_API_PORT
+    const dockerApiHost = process.env.CBA_APP_API_HOST
+    const dockerApiPort = process.env.CBA_APP_API_PORT
 
     proxyTarget = 'http://' + dockerApiHost + ':' + dockerApiPort + '/'
   }
 
   return {
-    '/api/': { target: proxyTarget, pathRewrite: { '^/api/': '' } }
+    '/api/': {
+      target: proxyTarget,
+      pathRewrite: { '^/api/': '' }
+    }
   }
 }
 
 export default {
   // Global page headers (https://go.nuxtjs.dev/config-head)
   head: {
-    title: 'cba_webapp',
+    title: 'CBA WebApp',
     meta: [
       { charset: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { hid: 'description', name: 'description', content: '' }
+      {
+        name: 'viewport',
+        content: 'width=device-width, initial-scale=1'
+      },
+      {
+        hid: 'description',
+        name: 'description',
+        content: ''
+      }
     ],
     link: [
-      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
+      {
+        rel: 'icon',
+        type: 'image/x-icon',
+        href: '/favicon.ico'
+      }
     ]
   },
 
@@ -62,7 +76,7 @@ export default {
   ],
 
   // https://github.com/nuxt-community/proxy-module#readme
-  // needed for CORS
+  // necessary for CORS
   proxy: proxyConfig(),
 
   // Axios module configuration (https://go.nuxtjs.dev/config-axios)
@@ -78,13 +92,13 @@ export default {
   // Build Configuration (https://go.nuxtjs.dev/config-build)
   build: {},
 
+  router: {
+    base: process.env.CBA_APP_CONTEXT_PATH
+  },
+
   server: {
     port: 3000, // default: 3000
     host: '0.0.0.0', // default: localhost,
     timing: false
-  },
-
-  router: {
-    base: process.env.CBA_CONTEXT_PATH
   }
 }

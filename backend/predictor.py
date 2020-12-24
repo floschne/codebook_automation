@@ -26,7 +26,7 @@ class Predictor(object):
         if cls._singleton is None:
             backend_logger.info('Instantiating Predictor!')
             # load config file
-            config = json.load(open("config.json", "r"))
+            config = json.load(open("config/config.json", "r"))
 
             # disable GPU for prediction if the configured this way.
             if not bool(config['backend']['use_gpu_for_prediction']):

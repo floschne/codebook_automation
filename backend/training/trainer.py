@@ -32,7 +32,7 @@ class Trainer(object):
             backend_logger.info('Instantiating Trainer!')
 
             # load config file
-            config = json.load(open("config.json", "r"))
+            config = json.load(open("config/config.json", "r"))
 
             # make sure GPU is available for ModelTrainer (if there is one)
             if not bool(config['backend']['use_gpu_for_training']):

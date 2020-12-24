@@ -35,7 +35,7 @@ docker build -t p0w3r/codebook_automation_app:latest ./cba_webapp/
 
 _Assuming that_
  - _$PWD is root folder of this repository_
- - _config.backend.data_base_path_env_var == "DATA_BASE_PATH"_
+ - _config.backend.data_root_env_var == "DATA_ROOT"_
 ```
-PYTHONPATH=${PWD} DATA_ROOT=/your/custom/data/path pytest
+PYTHONPATH=${PWD} DATA_ROOT=/tmp pytest
 ```

@@ -29,8 +29,9 @@ def startup_event():
         Predictor()
         Trainer()
     except Exception as e:
-        backend_logger.error("Error while starting the API!")
-        raise SystemExit("Error while starting the API!")
+        msg = f"Error while starting the API! Exception: {str(e)}"
+        backend_logger.error(msg)
+        raise SystemExit(msg)
 
 
 @app.on_event("shutdown")
@@ -132,7 +133,7 @@ async def dataset_not_available_exception_exception_handler(request: Request, ex
 
 if __name__ == "__main__":
     # load config file
-    config = json.load(open("./config.json", "r"))
+    config = json.load(open("config/config.json", "r"))
 
     # read port from config
     port = config['api']['api_port']
