@@ -8,3 +8,4 @@ __pycache__
 cba_webapp
 .travis.yml
 .gitignore
+redis-data
