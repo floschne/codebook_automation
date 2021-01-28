@@ -4,7 +4,8 @@
 
 # Codebook Automation API
 
-This is a simple python-based REST API to facilitate using state-of-the-art NLP models in WebAnno.
+Python-based REST API to facilitate using state-of-the-art NLP models to predict Codebooks for CodeAnno.
+
 
 ## How to add models
 Coming soon...
