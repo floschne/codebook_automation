@@ -5,10 +5,10 @@ from typing import Dict, List, Tuple, Union
 
 import tensorflow as tf
 
-from api.model import DocumentModel, PredictionResult, MultiDocumentPredictionResult, PredictionRequest, \
-    MultiDocumentPredictionRequest, TagLabelMapping, CodebookModel
+from api.model import DocumentDTO, PredictionResult, MultiDocumentPredictionResult, PredictionRequest, \
+    MultiDocumentPredictionRequest, TagLabelMapping
 from logger import backend_logger
-from .exceptions import ErroneousModelException, ErroneousMappingException, PredictionError
+from .exceptions import ErroneousModelException, ErroneousMappingException, PredictionError, ModelNotAvailableException
 from .model_manager import ModelManager
 
 
@@ -26,7 +26,7 @@ class Predictor(object):
         if cls._singleton is None:
             backend_logger.info('Instantiating Predictor!')
             # load config file
-            config = json.load(open("config.json", "r"))
+            config = json.load(open("config/config.json", "r"))
 
             # disable GPU for prediction if the configured this way.
             if not bool(config['backend']['use_gpu_for_prediction']):
@@ -42,14 +42,17 @@ class Predictor(object):
     def predict(self, req: Union[PredictionRequest, MultiDocumentPredictionRequest]) -> \
             Union[PredictionResult, MultiDocumentPredictionResult]:
 
+        if not ModelManager.is_available(req.cb_name, req.model_version):
+            raise ModelNotAvailableException(cb_name=req.cb_name, model_version=req.model_version)
+
         def p_single(r: PredictionRequest, q: Queue):
             try:
-                cb = r.codebook
+                cb_name = r.cb_name
                 doc = r.doc
                 model_version = r.model_version
 
                 # load the model
-                model = ModelManager.load_model(cb, model_version=model_version)
+                model = ModelManager.load(cb_name, model_version=model_version)
                 # build the sample(s) for the doc
                 samples = self._build_tf_sample(doc)
                 # get predictions
@@ -66,12 +69,12 @@ class Predictor(object):
 
         def p_multi(r: MultiDocumentPredictionRequest, q: Queue):
             try:
-                cb = r.codebook
+                cb_name = r.cb_name
                 docs = r.docs
                 model_version = r.model_version
 
                 # load the model
-                model = ModelManager.load_model(cb, model_version=model_version)
+                model = ModelManager.load(cb_name, model_version=model_version)
                 # build the sample(s) for the doc
                 samples = [self._build_tf_sample(doc) for doc in docs]
                 # get predictions
@@ -115,7 +118,7 @@ class Predictor(object):
             raise PredictionError()
 
     @staticmethod
-    def _build_tf_sample(doc: DocumentModel):
+    def _build_tf_sample(doc: DocumentDTO):
         ex = tf.train.Example()
         ex.features.feature['text'].bytes_list.value.extend([bytes(doc.text, encoding='utf-8')])
         return tf.constant(ex.SerializeToString())
@@ -134,19 +137,19 @@ class Predictor(object):
 
         probs = pred['probabilities'].numpy()[0].tolist()
 
-        cb = req.codebook
+        cb_name = req.cb_name
         if not len(probs) == len(classes):
-            raise ErroneousModelException(cb=cb)
+            raise ErroneousModelException(cb_name=cb_name)
 
         # apply mapping
         doc = req.doc
         mapping = req.mapping
-        probabilities, pred_tag = Predictor._apply_mapping(pred_label, classes, probs, mapping, cb)
+        probabilities, pred_tag = Predictor._apply_mapping(pred_label, classes, probs, mapping, cb_name)
 
         return PredictionResult(
             doc_id=doc.doc_id,
             proj_id=doc.proj_id,
-            codebook_name=cb.name,
+            codebook_name=cb_name,
             predicted_tag=pred_tag,
             probabilities=probabilities
         )
@@ -166,28 +169,28 @@ class Predictor(object):
 
         probs_list = [p['probabilities'].numpy()[0].tolist() for p in preds]
 
-        cb = req.codebook
+        cb_name = req.cb_name
         if not len(probs_list[0]) == len(classes):
-            raise ErroneousModelException(cb=cb)
+            raise ErroneousModelException(cb_name=cb_name)
 
         # apply mapping
         mapping = req.mapping
         probabilities, pred_tags = dict(), dict()
         for pred_label, probs, doc in zip(pred_labels, probs_list, req.docs):
-            mapped_probs, pred_tag = Predictor._apply_mapping(pred_label, classes, probs, mapping, cb)
+            mapped_probs, pred_tag = Predictor._apply_mapping(pred_label, classes, probs, mapping, cb_name)
 
             probabilities[doc.doc_id] = mapped_probs
             pred_tags[doc.doc_id] = pred_tag
 
         return MultiDocumentPredictionResult(
             proj_id=req.docs[0].proj_id,
-            codebook_name=cb.name,
+            codebook_name=cb_name,
             predicted_tags=pred_tags,
             probabilities=probabilities
         )
 
     @staticmethod
-    def _verify_mapping(classes: List[str], tag_label_map: TagLabelMapping, cb: CodebookModel):
+    def _verify_mapping(classes: List[str], tag_label_map: TagLabelMapping, cb_name: str):
 
         correct = True
 
@@ -198,25 +201,22 @@ class Predictor(object):
         tags = tag_label_map.keys()
         if len(tags) != len(classes):
             correct = False
-        for tag, label in tag_label_map.items():
-            if tag not in cb.tags or label not in classes:
-                correct = False
 
         if not correct:
-            raise ErroneousMappingException(cb)
+            raise ErroneousMappingException(cb_name)
 
     @staticmethod
     def _apply_mapping(pred_label: str,
                        classes: List[str],
                        probs: List[float],
                        tag_label_map: TagLabelMapping,
-                       cb: CodebookModel) \
+                       cb_name: str) \
             -> Tuple[Dict[str, float], str]:
 
         not_mapped = dict(zip(classes, probs))
 
         if tag_label_map is not None:
-            Predictor._verify_mapping(classes, tag_label_map, cb)
+            Predictor._verify_mapping(classes, tag_label_map, cb_name)
 
             tag_label_map = tag_label_map.map
 

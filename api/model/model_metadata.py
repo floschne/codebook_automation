@@ -1,11 +1,13 @@
-from typing import Dict
+from typing import Dict, Any
 
 from pydantic import BaseModel
 
 
 class ModelMetadata(BaseModel):
+    codebook_name: str
+    version: str
+    dataset_version: str
     labels: Dict[str, str]
     model_type: str
-    embeddings: str = None
     evaluation: Dict[str, float]
-    timestamp: str
+    model_config: Dict[Any, Any]

@@ -5,8 +5,8 @@ sys.path.append(str(os.getcwd()))
 
 import pytest
 
-from api.model import CodebookModel
 from backend.data_handler import DataHandler
+from backend.exceptions import NoDataForCodebookException
 
 
 @pytest.fixture
@@ -14,35 +14,23 @@ def dh():
     return DataHandler()
 
 
-def create_dummy_codebook_models(num: int):
-    dummies = list()
-    for i in range(num):
-        dummies.append(CodebookModel(
-            name=f"DummyCodebookModel{i}",
-            tags=[f"DummyTag{i}{i + 1}",
-                  f"DummyTag{i}{i + 2}",
-                  f"DummyTag{i}{i + 3}",
-                  f"DummyTag{i}{i + 4}",
-                  f"DummyTag{i}{i + 5}"]))
-    if num == 1:
-        return dummies[0]
-    return dummies
+def test_get_and_purge_data_directory(dh: DataHandler):
+    cb1, cb2 = "CB1", "CB2"
 
+    # raise exception of the data dirs don't exist
+    with pytest.raises(NoDataForCodebookException):
+        dh._get_data_directory(cb1, create=False)
+        dh._get_data_directory(cb2, create=False)
 
-def test_get_data_handle(dh: DataHandler):
-    cb1, cb2 = create_dummy_codebook_models(2)
+    # create the dirs
+    cb1_dir = dh._get_data_directory(cb1, create=True)
+    cb2_dir = dh._get_data_directory(cb2, create=True)
+    assert cb1_dir != cb2_dir
+    assert cb1_dir.exists()
+    assert cb2_dir.exists()
 
-    cb1_id = dh.get_data_handle(cb1)
-    cb2_id = dh.get_data_handle(cb2)
-
-    assert len(cb1_id) == len(cb2_id)
-    assert cb1_id != cb2_id
-    assert cb1_id == dh.get_data_handle(cb1)
-
-    # shuffle the tags
-    while cb1.tags == cb2.tags:
-        cb1.tags.shuffle()
-    # compute new handle
-    cb1_id_2 = dh.get_data_handle(cb1)
-    # shuffling the tags must not change the id!
-    assert cb1_id_2 == cb1_id
+    # remove the dirs again
+    dh._purge_data(cb1)
+    dh._purge_data(cb2)
+    assert not cb1_dir.exists()
+    assert not cb2_dir.exists()

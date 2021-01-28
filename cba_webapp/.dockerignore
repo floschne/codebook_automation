@@ -1,0 +1,8 @@
+node_modules
+redis-data
+
+# nuxt.js build output
+.nuxt
+
+# Nuxt generate
+dist

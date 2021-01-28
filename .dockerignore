@@ -5,5 +5,7 @@ notebooks
 .git
 .pytest_cache
 __pycache__
+cba_webapp
 .travis.yml
 .gitignore
+redis-data

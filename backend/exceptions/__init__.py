@@ -1,10 +1,9 @@
-from .excepts import ErroneousMappingException, ModelNotAvailableException, ModelMetadataNotAvailableException, \
+from .excepts import ErroneousMappingException, ModelNotAvailableException, \
     ErroneousModelException, PredictionError, ModelInitializationException, ErroneousDatasetException, \
     InvalidModelIdException, DatasetNotAvailableException, NoDataForCodebookException, TFHubEmbeddingException
 
 __all__ = [ErroneousModelException,
            ModelNotAvailableException,
-           ModelMetadataNotAvailableException,
            ErroneousModelException,
            PredictionError,
            ModelInitializationException,

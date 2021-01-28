@@ -8,9 +8,14 @@ python:
 install:
   - pip install -r requirements.txt
 
+services:
+  - redis-server
+
 before_script:
   - export PYTHONPATH=$PYTHONPATH:$(pwd)
-  - export DATA_BASE_PATH=/tmp/codebook_automation/models/
+  - export CBA_API_DATA_ROOT=/tmp
+  - export CBA_API_REDIS_HOST=localhost
+  - export CBA_API_REDIS_PORT=6379
 
 script:
   - pytest

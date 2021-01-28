@@ -1,11 +1,39 @@
+# Check .env file for correctness!
 version: '3'
 
 services:
-  api:
-    image: 'p0w3r/codebook_automation:latest'
+  redis:
+    image: 'redis:latest'
+    ports:
+      - "${CBA_REDIS_EXPOSED_PORT}:6379"
+    volumes:
+      - ./redis-data:/data
+
+  cba_api:
+    image: 'p0w3r/codebook_automation_api:latest'
+    depends_on:
+      - redis
     volumes:
       - ./data:/data
+      - ./config:/app/config
     environment:
-      - DATA_BASE_PATH=/data
+      - "CBA_API_DATA_ROOT=${CBA_API_DATA_ROOT}"
+      - "CBA_API_REDIS_HOST=${CBA_API_REDIS_HOST}"
+      - "CBA_API_REDIS_PORT=${CBA_API_REDIS_PORT}"
     ports:
-      - "${CBA_API_PORT}:80"
+      - "${CBA_API_EXPOSED_PORT}:80"
+
+  cba_app:
+    image: 'p0w3r/codebook_automation_app:latest'
+    depends_on:
+      - cba_api
+    environment:
+      - "CBA_APP_DEPLOY=${CBA_APP_DEPLOY}"
+      - "CBA_APP_API_HOST=${CBA_APP_API_HOST}"
+      - "CBA_APP_API_PORT=${CBA_APP_API_PORT}"
+      # TODO this cannot be set at or just before runtime...
+      # see https://stackoverflow.com/questions/65428478/nuxt-js-router-config-at-runtime-or-just-before-the-application-starts
+      - "CBA_APP_CONTEXT_PATH=${CBA_APP_CONTEXT_PATH}"
+    ports:
+      - "${CBA_APP_EXPOSED_PORT}:3000"
+

@@ -4,19 +4,12 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from api.routers import general, model, prediction, training
-from backend import DataHandler, ModelFactory, ModelManager, Predictor, Trainer
+from api.routers import general, model, prediction, training, dataset
+from backend import DataHandler, ModelFactory, ModelManager, Predictor, Trainer, DatasetManager, RedisHandler
 from backend.exceptions import ModelNotAvailableException, ErroneousMappingException, ErroneousModelException, \
-    ModelMetadataNotAvailableException, PredictionError, ModelInitializationException, ErroneousDatasetException, \
+    PredictionError, ModelInitializationException, ErroneousDatasetException, \
     NoDataForCodebookException, DatasetNotAvailableException, InvalidModelIdException
 from logger import backend_logger
-
-# instantiate singletons
-DataHandler()
-ModelFactory()
-ModelManager()
-Predictor()
-Trainer()
 
 # create the main app
 app = FastAPI(title="Codebook Automation API",
@@ -24,13 +17,31 @@ app = FastAPI(title="Codebook Automation API",
               version="beta")
 
 
+@app.on_event("startup")
+def startup_event():
+    try:
+        # instantiate singletons
+        DataHandler()
+        RedisHandler()
+        DatasetManager()
+        ModelFactory()
+        ModelManager()
+        Predictor()
+        Trainer()
+    except Exception as e:
+        msg = f"Error while starting the API! Exception: {str(e)}"
+        backend_logger.error(msg)
+        raise SystemExit(msg)
+
+
 @app.on_event("shutdown")
-def shutdown_event():
-    Trainer.shutdown()
+async def shutdown_event():
+    await Trainer.shutdown()
 
 
 # include the routers
 app.include_router(general.router)
+app.include_router(dataset.router, prefix=dataset.PREFIX)
 app.include_router(model.router, prefix=model.PREFIX)
 app.include_router(prediction.router, prefix=prediction.PREFIX)
 app.include_router(training.router, prefix=training.PREFIX)
@@ -83,20 +94,11 @@ async def erroneous_model_exception_handler(request: Request, exc: ErroneousMode
     )
 
 
-@app.exception_handler(ModelMetadataNotAvailableException)
-async def model_metadata_not_available_exception_handler(request: Request, exc: ModelMetadataNotAvailableException):
-    backend_logger.error(exc.message)
-    return JSONResponse(
-        status_code=500,
-        content={"message": exc.message}
-    )
-
-
 @app.exception_handler(ErroneousDatasetException)
 async def erroneous_dataset_exception_handler(request: Request, exc: ErroneousDatasetException):
     backend_logger.error(exc.message)
     return JSONResponse(
-        status_code=500,
+        status_code=400,
         content={"message": exc.message,
                  "caused_by": exc.caused_by}
     )
@@ -106,7 +108,7 @@ async def erroneous_dataset_exception_handler(request: Request, exc: ErroneousDa
 async def no_data_for_codebook_exception_handler(request: Request, exc: NoDataForCodebookException):
     backend_logger.error(exc.message)
     return JSONResponse(
-        status_code=500,
+        status_code=404,
         content={"message": exc.message}
     )
 
@@ -115,7 +117,7 @@ async def no_data_for_codebook_exception_handler(request: Request, exc: NoDataFo
 async def invalid_model_id_exception_exception_handler(request: Request, exc: InvalidModelIdException):
     backend_logger.error(exc.message)
     return JSONResponse(
-        status_code=500,
+        status_code=400,
         content={"message": exc.message}
     )
 
@@ -124,14 +126,14 @@ async def invalid_model_id_exception_exception_handler(request: Request, exc: In
 async def dataset_not_available_exception_exception_handler(request: Request, exc: DatasetNotAvailableException):
     backend_logger.error(exc.message)
     return JSONResponse(
-        status_code=500,
+        status_code=404,
         content={"message": exc.message}
     )
 
 
 if __name__ == "__main__":
     # load config file
-    config = json.load(open("./config.json", "r"))
+    config = json.load(open("config/config.json", "r"))
 
     # read port from config
     port = config['api']['api_port']

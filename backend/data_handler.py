@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import shutil
@@ -8,7 +7,7 @@ from zipfile import ZipFile
 
 from fastapi import UploadFile
 
-from api.model import CodebookModel
+from api.model import DatasetMetadata, ModelMetadata
 from logger import backend_logger
 from .exceptions import DatasetNotAvailableException
 from .exceptions import ModelNotAvailableException
@@ -17,9 +16,10 @@ from .exceptions import NoDataForCodebookException
 
 class DataHandler(object):
     _singleton = None
-    _DATA_BASE_PATH: Path = None
+    _DATA_ROOT: Path = None
     _relative_dataset_directory: Path = Path("dataset/")
     _relative_model_directory: Path = Path("model/")
+    _redis = None
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
@@ -27,102 +27,105 @@ class DataHandler(object):
             cls._singleton = super(DataHandler, cls).__new__(cls)
 
             # read the data base path from config and 'validate' it
-            config = json.load(open("config.json", "r"))
-            env_var = config['backend']['data_base_path_env_var']
+            config = json.load(open("config/config.json", "r"))
+            env_var = config['backend']['data_root_env_var']
             env_var = os.getenv(env_var, None)
-            assert env_var is not None and env_var != "", "DATA_BASE_PATH environment variable not set!"
+            assert env_var is not None and env_var != "", f"{env_var} environment variable not set!"
             env_var = env_var.strip()
-            cls._DATA_BASE_PATH = Path(env_var)
+            cls._DATA_ROOT = Path(env_var)
 
             # create the BASE_PATH if it doesn't exist
-            if not cls._DATA_BASE_PATH.exists():
-                cls._DATA_BASE_PATH.mkdir(parents=True)
+            if not cls._DATA_ROOT.exists():
+                cls._DATA_ROOT.mkdir(parents=True)
 
         return cls._singleton
 
-    # noinspection GrazieInspection
     @staticmethod
-    def get_data_handle(cb: CodebookModel) -> str:
-        """
-        Computes the data handle for the given Codebook by MD5-hashing it's JSON representation (after sorting tags)
-        and adding its lowercase name as a prefix Note that this is just an identifier / handle that does not guarantee
-        that data for the Codebook exists.
-
-        :param cb: The codebook model!
-        :return: The data handle as a string
-        """
-        cb.tags.sort()
-        return cb.name.lower() + "_" + hashlib.md5(cb.json().encode('utf-8')).hexdigest()
-
-    @staticmethod
-    def get_model_directory(cb: CodebookModel, model_version: str = "default", create: bool = False) -> Path:
+    def get_model_directory(cb_name: str, model_version: str = "default", create: bool = False) -> Path:
         model_version = "default" if model_version is None or model_version == "" else model_version
-        model_dir = DataHandler._get_data_directory(cb, create).joinpath(
+        model_dir = DataHandler._get_data_directory(cb_name, create).joinpath(
             DataHandler._relative_model_directory).joinpath(
             model_version)
         if create:
             model_dir.mkdir(exist_ok=True, parents=True)
         if not model_dir.is_dir():
-            raise ModelNotAvailableException(model_version=model_version, cb=cb)
+            raise ModelNotAvailableException(model_version=model_version, cb_name=cb_name)
         return model_dir
 
     @staticmethod
-    def get_model_dir_from_handle(cb_data_handle: str, model_version: str = "default", create: bool = False) -> Path:
-        model_version = "default" if model_version is None or model_version == "" else model_version
-        # TODO exception if data dir not available
-        model_dir = DataHandler._get_data_dir_from_handle(cb_data_handle=cb_data_handle).joinpath(
-            DataHandler._relative_model_directory).joinpath(model_version)
-        if create:
-            model_dir.mkdir(exist_ok=True, parents=True)
-        if not model_dir.is_dir():
-            # TODO add model id or cb for proper error msg
-            raise ModelNotAvailableException()
-        return model_dir
-
-    @staticmethod
-    def store_dataset(cb: CodebookModel, dataset_archive: UploadFile, dataset_version: str) -> Path:
+    def store_dataset(cb_name: str, dataset_archive: UploadFile, dataset_version: str) -> Path:
         try:
-            ds_dir = DataHandler.get_dataset_directory(cb, dataset_version=dataset_version, create=True)
+            ds_dir = DataHandler.get_dataset_directory(cb_name, dataset_version=dataset_version, create=True)
             dst = ds_dir.joinpath(dataset_archive.filename)
+            backend_logger.info(f"Extracting dataset archive to {str(dst)}")
             archive_path = DataHandler._store_uploaded_file(dataset_archive, dst)
             return DataHandler._extract_archive(archive=archive_path, dst=ds_dir)
         finally:
             dataset_archive.file.close()
 
     @staticmethod
-    def store_model(cb: CodebookModel, model_archive: UploadFile, model_version: str) -> Path:
+    def store_dataset_metadata(cb_name: str, dataset_metadata: DatasetMetadata) -> Path:
+        ds_dir = DataHandler.get_dataset_directory(cb_name, dataset_version=dataset_metadata.version, create=False)
+        dst = ds_dir.joinpath('metadata.json')
+        with open(dst, 'w') as out:
+            backend_logger.info(f"Storing dataset metadata at {str(dst)}")
+            print(dataset_metadata.json(), file=out)
+        assert dst.exists() and DatasetMetadata.parse_file(dst) == dataset_metadata  # TODO exception
+        return dst
+
+    @staticmethod
+    def get_dataset_metadata(cb_name: str, dataset_version: str) -> DatasetMetadata:
+        model_dir = DataHandler.get_dataset_directory(cb_name, dataset_version=dataset_version)
+        path = model_dir.joinpath('metadata.json')
+        assert path.exists()
+        return DatasetMetadata.parse_file(path)
+
+    @staticmethod
+    def store_model(cb_name: str, model_archive: UploadFile, model_version: str) -> Path:
         try:
-            ds_dir = DataHandler.get_model_directory(cb, model_version=model_version, create=True)
-            dst = ds_dir.joinpath(model_archive.filename)
+            model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version, create=True)
+            dst = model_dir.joinpath(model_archive.filename)
+            backend_logger.info(f"Extracting model archive to {str(dst)}")
             archive_path = DataHandler._store_uploaded_file(model_archive, dst)
-            return DataHandler._extract_archive(archive=archive_path, dst=ds_dir)
+            return DataHandler._extract_archive(archive=archive_path, dst=model_dir)
         finally:
             model_archive.file.close()
 
     @staticmethod
-    def get_dataset_directory(cb: CodebookModel, dataset_version: str = "default", create: bool = False) -> Path:
-        data_directory = DataHandler._get_data_directory(cb, create).joinpath(
+    def store_model_metadata(cb_name: str, model_metadata: ModelMetadata) -> Path:
+        model_dir = DataHandler.get_model_directory(cb_name, model_version=model_metadata.version, create=False)
+        dst = model_dir.joinpath('metadata.json')
+        with open(dst, 'w') as out:
+            backend_logger.info(f"Storing model metadata at {str(dst)}")
+            print(model_metadata.json(), file=out)
+        assert dst.exists() and ModelMetadata.parse_file(dst) == model_metadata  # TODO exception
+        return dst
+
+    @staticmethod
+    def get_model_metadata(cb_name: str, model_version: str) -> ModelMetadata:
+        model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version)
+        path = model_dir.joinpath('metadata.json')
+        assert path.exists()
+        return ModelMetadata.parse_file(path)
+
+    @staticmethod
+    def get_dataset_directory(cb_name: str, dataset_version: str = "default", create: bool = False) -> Path:
+        data_directory = DataHandler._get_data_directory(cb_name, create).joinpath(
             DataHandler._relative_dataset_directory).joinpath(
             dataset_version)
         if create:
             data_directory.mkdir(exist_ok=True, parents=True)
         if not data_directory.is_dir():
-            raise DatasetNotAvailableException(dataset_version=dataset_version, cb=cb)
+            raise DatasetNotAvailableException(dataset_version=dataset_version, cb_name=cb_name)
         return data_directory
 
     @staticmethod
-    def _get_data_directory(cb: CodebookModel, create: bool = False) -> Path:
-        data_handle = DataHandler.get_data_handle(cb)
-        data_directory = Path(DataHandler._DATA_BASE_PATH, data_handle)
+    def _get_data_directory(cb_name: str, create: bool = False) -> Path:
+        data_directory = Path(DataHandler._DATA_ROOT, cb_name)
         if create:
             data_directory.mkdir(exist_ok=True, parents=True)
         if not data_directory.is_dir():
-            raise NoDataForCodebookException(cb=cb)
-        return data_directory
-
-    @staticmethod
-    def _get_data_dir_from_handle(cb_data_handle: str) -> Path:
-        data_directory = Path(DataHandler._DATA_BASE_PATH, cb_data_handle)
+            raise NoDataForCodebookException(cb_name=cb_name)
         assert data_directory.is_dir()
         return data_directory
 
@@ -139,3 +142,22 @@ class DataHandler(object):
         with open(dst, "wb") as buffer:
             shutil.copyfileobj(uploaded_file.file, buffer)
             return Path(dst)
+
+    @staticmethod
+    def purge_dataset_directory(cb_name: str, dataset_version: str):
+        dataset_dir = DataHandler.get_dataset_directory(cb_name, dataset_version=dataset_version)
+        backend_logger.warning(f"Permanently removing dataset '{dataset_version}' of Codebook '{cb_name}'")
+        shutil.rmtree(dataset_dir)
+
+    @staticmethod
+    def purge_model_directory(cb_name: str, model_version: str):
+        model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version)
+        backend_logger.warning(f"Permanently removing data of model '{model_version}' of Codebook '{cb_name}'")
+        shutil.rmtree(model_dir)
+
+    @staticmethod
+    def _purge_data(cb_name: str):
+        backend_logger.warning(
+            f"Permanently removing all data (including models and datasets) of Codebook <{cb_name}>!")
+        data_directory = Path(DataHandler._DATA_ROOT, cb_name)
+        shutil.rmtree(data_directory)

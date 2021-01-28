@@ -2,20 +2,19 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from .codebook_model import CodebookModel
-from .document_model import DocumentModel
+from .document_dto import DocumentDTO
 from .tag_label_mapping import TagLabelMapping
 
 
 class PredictionRequest(BaseModel):
-    doc: DocumentModel
-    codebook: CodebookModel
+    doc: DocumentDTO
+    cb_name: str
     mapping: TagLabelMapping = None
     model_version: Optional[str] = "default"
 
 
 class MultiDocumentPredictionRequest(BaseModel):
-    docs: List[DocumentModel]
-    codebook: CodebookModel
+    docs: List[DocumentDTO]
+    cb_name: str
     mapping: Optional[TagLabelMapping] = None
     model_version: Optional[str] = "default"
