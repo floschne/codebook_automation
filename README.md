@@ -1,10 +1,8 @@
-![Travis (.org)](https://img.shields.io/travis/floschne/codebook_automation)
-![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/p0w3r/codebook_automation)
-![Docker Cloud Automated build](https://img.shields.io/docker/cloud/automated/p0w3r/codebook_automation)
+[![Build Status](https://travis-ci.com/uhh-lt/codebook_automation.svg?token=H1oV8zP1gyPKLnzBsppc&branch=main)](https://travis-ci.com/uhh-lt/codebook_automation)
 
-# Codebook Automation API
+# Codebook Automation
 
-Python-based REST API to facilitate using state-of-the-art NLP models to predict Codebooks for CodeAnno.
+Modern NuxtJS WebApp build on top of FastAPI REST API to facilitate using state-of-the-art NLP models to predict Codebooks for CodeAnno.
 
 
 ## How to add models
@@ -28,8 +26,8 @@ docker-compose up -d
 Docker images will be pulled from docker-hub if not available on the system.
 To manually and locally build the image run:
 ```
-docker build -t p0w3r/codebook_automation_api:latest .
-docker build -t p0w3r/codebook_automation_app:latest ./cba_webapp/
+docker build -t uhhlt/codebook_automation_api:latest .
+docker build -t uhhlt/codebook_automation_app:latest ./cba_webapp/
 ```
 
 ## How to run tests

@@ -15,7 +15,7 @@ services:
       - cba_codeanno
 
   cba_api:
-    image: 'p0w3r/codebook_automation_api:latest'
+    image: 'uhhlt/codebook_automation_api:latest'
     depends_on:
       - redis
     volumes:
@@ -31,7 +31,7 @@ services:
       - cba_codeanno
 
   cba_app:
-    image: 'p0w3r/codebook_automation_app:latest'
+    image: 'uhhlt/codebook_automation_app:latest'
     depends_on:
       - cba_api
     environment:
