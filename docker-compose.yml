@@ -10,7 +10,7 @@ services:
       - ./redis-data:/data
 
   cba_api:
-    image: 'p0w3r/codebook_automation_api:latest'
+    image: 'uhhlt/codebook_automation_api:latest'
     depends_on:
       - redis
     volumes:
@@ -24,7 +24,7 @@ services:
       - "${CBA_API_EXPOSED_PORT}:80"
 
   cba_app:
-    image: 'p0w3r/codebook_automation_app:latest'
+    image: 'uhhlt/codebook_automation_app:latest'
     depends_on:
       - cba_api
     environment:
