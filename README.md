@@ -15,7 +15,7 @@ Coming soon...
 _Assuming that your in the root folder of this repository_
 ```
 pip install -r requirements.txt
-DATA_ROOT=/your/custom/data/path uvicorn main:app --host 0.0.0.0 --port 8081
+CBA_API_DATA_ROOT=/tmp CBA_API_REDIS_HOST=localhost CBA_API_REDIS_PORT=6379 uvicorn main:app --host 0.0.0.0 --port 8081
 ```
 
 
@@ -35,8 +35,10 @@ docker build -t p0w3r/codebook_automation_app:latest ./cba_webapp/
 ## How to run tests
 
 _Assuming that_
- - _$PWD is root folder of this repository_
- - _config.backend.data_root_env_var == "DATA_ROOT"_
+ - _PWD is root folder of this repository_
+ - _config.backend.data_root_env_var == "CBA_API_DATA_ROOT"_
+ - _clean redis instance is running on `localhost:6379`_
+
 ```
-PYTHONPATH=${PWD} DATA_ROOT=/tmp pytest
+PYTHONPATH=${PWD} CBA_API_DATA_ROOT=/tmp CBA_API_REDIS_HOST=localhost CBA_API_REDIS_PORT=6379 pytest
 ```
