@@ -1,13 +1,15 @@
 <template>
-  <div class="container-fluid text-center">
-    <h1 class="title">
-      Welcome to the Codebook Automation WebApp
-    </h1>
-  </div>
+  <b-container>
+    <b-jumbotron
+      header="Welcome"
+      lead="to the CodeBook Automation WebApp"
+      bg-variant="dark"
+      text-variant="light"
+      class="w-100" />
+  </b-container>
 </template>
 
 <script>
-export default {}
 </script>
 
 <style>
@@ -21,16 +23,15 @@ export default {}
 }
 
 .title {
-  font-family:
-    'Quicksand',
-    'Source Sans Pro',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
+  font-family: 'Quicksand',
+  'Source Sans Pro',
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  Roboto,
+  'Helvetica Neue',
+  Arial,
+  sans-serif;
   display: block;
   font-weight: 300;
   font-size: 100px;
