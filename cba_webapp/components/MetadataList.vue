@@ -2,7 +2,7 @@
   <div>
     <div v-if="showAlarm">
       <b-alert v-model="error" variant="danger">
-        Cannot find {{ model ? 'Models' : 'Datasets' }}!
+        Cannot find {{ model ? 'Models' : 'Datasets' }} for the provided Codebook name!
       </b-alert>
     </div>
     <b-row>
