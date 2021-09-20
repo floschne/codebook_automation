@@ -63,12 +63,12 @@ export default {
         this.metaDataList = await this.$datasetApiClient.list(reqFromData.name)
       }
 
-      this.success = this.metaDataList !== null && this.metaDataList !== undefined
-      this.showAlarm = true
+      this.success = this.metaDataList !== null && this.metaDataList !== undefined && this.metaDataList.length > 0
+      this.showAlarm = !this.success;
     },
     reset () {
       this.success = false
-      this.showAlarm = true
+      this.showAlarm = false
     }
   }
 }
