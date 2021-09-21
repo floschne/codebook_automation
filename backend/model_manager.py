@@ -1,4 +1,3 @@
-import datetime as dt
 import re
 from typing import Tuple, Dict, List
 
@@ -7,11 +6,24 @@ from fastapi import UploadFile
 
 from api.model import ModelMetadata, TrainingRequest
 from logger import backend_logger
-from .db.redis_handler import RedisHandler
-from .data_handler import DataHandler
-from .dataset_manager import DatasetManager
-from .exceptions import ErroneousModelException, ModelNotAvailableException, NoDataForCodebookException, \
+from backend.db.redis_handler import RedisHandler
+from backend.data_handler import DataHandler
+from backend.dataset_manager import DatasetManager
+from backend.exceptions import ErroneousModelException, ModelNotAvailableException, NoDataForCodebookException, \
     InvalidModelIdException
+import re
+from typing import Tuple, Dict, List
+
+import tensorflow as tf
+from fastapi import UploadFile
+
+from api.model import ModelMetadata, TrainingRequest
+from backend.data_handler import DataHandler
+from backend.dataset_manager import DatasetManager
+from backend.db.redis_handler import RedisHandler
+from backend.exceptions import ErroneousModelException, ModelNotAvailableException, NoDataForCodebookException, \
+    InvalidModelIdException
+from logger import backend_logger
 
 
 class ModelManager(object):

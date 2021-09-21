@@ -2,9 +2,9 @@ from typing import Optional, List
 
 from fastapi import APIRouter, UploadFile, File, Form
 
+from api.model import BooleanResponse, StringResponse, ModelMetadata
 from backend import ModelManager
 from logger import api_logger
-from ..model import BooleanResponse, StringResponse, ModelMetadata
 
 PREFIX = "/model"
 

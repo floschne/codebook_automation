@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
+from api.model import PredictionRequest, MultiDocumentPredictionRequest, PredictionResult, MultiDocumentPredictionResult
 from backend import Predictor
 from logger import api_logger
-from ..model import PredictionRequest, MultiDocumentPredictionRequest, PredictionResult, MultiDocumentPredictionResult
 
 PREFIX = "/prediction"
 router = APIRouter()

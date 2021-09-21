@@ -2,8 +2,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from .document_dto import DocumentDTO
-from .tag_label_mapping import TagLabelMapping
+from api.model.document_dto import DocumentDTO
+from api.model.tag_label_mapping import TagLabelMapping
 
 
 class PredictionRequest(BaseModel):
