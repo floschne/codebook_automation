@@ -12,4 +12,6 @@ loguru~=0.5.3
 tensorflow~=2.3.0
 tensorflow-hub~=0.9.0
 tensorflow-datasets~=3.2.1
-redis
+redis~=3.5.3
+numpy~=1.18.5
+omegaconf~=2.1.1

@@ -1,5 +1,3 @@
-import json
-import os
 import shutil
 import zipfile
 from pathlib import Path
@@ -8,10 +6,9 @@ from zipfile import ZipFile
 from fastapi import UploadFile
 
 from api.model import DatasetMetadata, ModelMetadata
+from backend.exceptions import DatasetNotAvailableException, ModelNotAvailableException, NoDataForCodebookException
+from config import conf
 from logger import backend_logger
-from .exceptions import DatasetNotAvailableException
-from .exceptions import ModelNotAvailableException
-from .exceptions import NoDataForCodebookException
 
 
 class DataHandler(object):
@@ -26,15 +23,12 @@ class DataHandler(object):
             backend_logger.info('Instantiating DataHandler!')
             cls._singleton = super(DataHandler, cls).__new__(cls)
 
-            # read the data base path from config and 'validate' it
-            config = json.load(open("config/config.json", "r"))
-            env_var = config['backend']['data_root_env_var']
-            env_var = os.getenv(env_var, None)
-            assert env_var is not None and env_var != "", f"{env_var} environment variable not set!"
-            env_var = env_var.strip()
-            cls._DATA_ROOT = Path(env_var)
+            # read the data base path from config
+            data_root = str(conf.backend.data_root).strip()
+            assert data_root is not None and data_root != "", f"Data root path not set!"
+            cls._DATA_ROOT = Path(data_root)
 
-            # create the BASE_PATH if it doesn't exist
+            # create the base path if it doesn't exist
             if not cls._DATA_ROOT.exists():
                 cls._DATA_ROOT.mkdir(parents=True)
 
