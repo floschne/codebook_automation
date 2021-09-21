@@ -1,11 +1,10 @@
-import json
-import os
 from typing import List, Union
 
 import redis
 
 from api.model import ModelMetadata, DatasetMetadata
 from backend.exceptions import ModelNotAvailableException, DatasetNotAvailableException
+from config import conf
 from logger import backend_logger
 
 
@@ -22,18 +21,10 @@ class RedisHandler(object):
             cls._singleton = super(RedisHandler, cls).__new__(cls)
 
             # setup redis
-            config = json.load(open("config/config.json", "r"))
-            # TODO maybe create separate handler for redis and enable config of:
-            #  - user & pw
-            #  - SSL
-            #  - TTL
-            #  - omegaconf
-            host_env_var = config['backend']['redis']['host_env_var'].strip()
-            port_env_var = config['backend']['redis']['port_env_var'].strip()
-            r_host = os.getenv(host_env_var, None)
-            r_port = os.getenv(port_env_var, None)
-            assert r_host is not None and r_host != "", f"{host_env_var} environment variable not set!"
-            assert r_port is not None, f"{port_env_var} environment variable not set!"
+            r_host = conf.backend.redis.host
+            r_port = int(conf.backend.redis.port)
+            assert r_host is not None and r_host != "", f"Redis Host not set!"
+            assert r_port is not None and r_port >= 0, f"Redis Port not set!"
 
             cls.__datasets = redis.Redis(host=r_host, port=r_port, db=cls.__dataset_db_idx)
             assert cls.__datasets.ping(), f"Couldn't connect to Redis DB {cls.__dataset_db_idx} at {r_host}:{r_port}!"

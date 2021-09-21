@@ -7,5 +7,5 @@ backend:
   use_gpu_for_training: 0
 
   redis:
-    host_env_var: CBA_API_REDIS_HOST
-    port_env_var: CBA_API_REDIS_PORT
+    host: ${oc.env:CBA_API_REDIS_HOST, localhost}
+    port: ${oc.env:CBA_API_REDIS_PORT, 6379}
