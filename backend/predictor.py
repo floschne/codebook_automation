@@ -1,4 +1,3 @@
-import json
 import os
 from multiprocessing import Process, Queue
 from typing import Dict, List, Tuple, Union
@@ -7,9 +6,11 @@ import tensorflow as tf
 
 from api.model import DocumentDTO, PredictionResult, MultiDocumentPredictionResult, PredictionRequest, \
     MultiDocumentPredictionRequest, TagLabelMapping
+from backend.exceptions import ErroneousModelException, ErroneousMappingException, PredictionError, \
+    ModelNotAvailableException
+from backend.model_manager import ModelManager
+from config import conf
 from logger import backend_logger
-from .exceptions import ErroneousModelException, ErroneousMappingException, PredictionError, ModelNotAvailableException
-from .model_manager import ModelManager
 
 
 # TODO
@@ -25,11 +26,9 @@ class Predictor(object):
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
             backend_logger.info('Instantiating Predictor!')
-            # load config file
-            config = json.load(open("config/config.json", "r"))
 
             # disable GPU for prediction if the configured this way.
-            if not bool(config['backend']['use_gpu_for_prediction']):
+            if not bool(conf.backend.use_gpu_for_prediction):
                 backend_logger.info("GPU support for prediction disabled!")
                 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
             else:
