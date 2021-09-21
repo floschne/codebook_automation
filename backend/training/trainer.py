@@ -9,13 +9,12 @@ from typing import Dict, Optional
 
 import psutil
 import tensorflow as tf
-from loguru import logger
+from loguru import logger as log
 
 from api.model import TrainingResponse, TrainingRequest, TrainingState, TrainingStatus
 from backend import DataHandler, DatasetManager, ModelManager
 from backend.training.model_factory import ModelFactory
 from config import conf
-from logger import backend_logger
 
 
 class Trainer(object):
@@ -27,14 +26,14 @@ class Trainer(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
-            backend_logger.info('Instantiating Trainer!')
+            log.info('Instantiating Trainer!')
 
             # make sure GPU is available for ModelTrainer (if there is one)
             if not bool(conf.backend.use_gpu_for_training):
-                backend_logger.info("GPU support for training disabled!")
+                log.info("GPU support for training disabled!")
                 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
             else:
-                backend_logger.info("GPU support for training enabled!")
+                log.info("GPU support for training enabled!")
 
             cls._singleton = super(Trainer, cls).__new__(cls)
             cls._manager = Manager()
@@ -56,11 +55,11 @@ class Trainer(object):
 
         # remove model if another with same version exists!
         if ModelManager.is_available(request.cb_name, request.model_version):
-            backend_logger.warning(f"Model {request.model_version} for Codebook '{request.cb_name}' already exists!")
+            log.warning(f"Model {request.model_version} for Codebook '{request.cb_name}' already exists!")
             ModelManager.remove(cb_name=request.cb_name, model_version=request.model_version)
 
         with Manager() as manager:
-            backend_logger.info(f"Spawning new process for train-eval-export cycle for Codebook <{request.cb_name}>")
+            log.info(f"Spawning new process for train-eval-export cycle for Codebook <{request.cb_name}>")
             p = Process(target=train_eval_export, args=(request, Trainer._status_dict, Trainer._active_pids))
             p.start()
 
@@ -122,14 +121,14 @@ def update_training_status(status_dict: Dict[str, TrainingStatus], mid: str, sta
     status_dict[mid] = status
 
 
-@logger.catch
+@log.catch
 def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatus], active_pids: Dict[int, str]):
     # TODO use redis or similar to persist status and logs etc
     mid = ModelManager.build_model_id(req.cb_name, req.model_version, req.dataset_version)
     proc = multiprocessing.current_process()
     # add pid to active pids
     active_pids[proc.pid] = mid
-    backend_logger.info(f"Started train-eval-export cycle process with PID <{str(proc.pid)}>")
+    log.info(f"Started train-eval-export cycle process with PID <{str(proc.pid)}>")
 
     # init training status
     training_status = TrainingStatus()
@@ -142,34 +141,34 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
 
         # create log file
         log_file = Trainer.get_training_log(TrainingResponse(model_id=mid), create=True)
-        backend_logger.info(f"Setting up logging for process with PID <{str(proc.pid)}> at <{str(log_file)}>")
+        log.info(f"Setting up logging for process with PID <{str(proc.pid)}> at <{str(log_file)}>")
         # create loguru sink
-        logger.add(str(log_file), rotation="500 MB", enqueue=True)
+        log.add(str(log_file), rotation="500 MB", enqueue=True)
         tf.get_logger().addHandler(intercept_handler)
-        backend_logger.addHandler(intercept_handler)
+        logging.basicConfig(handlers=[intercept_handler], level=0)
 
         # create model
-        backend_logger.info(f"Building model <{req.model_version}> for Codebook <{req.cb_name}> with model config"
-                            f"<{req.model_config}>. ModelID: <{mid}>")
+        log.info(f"Building model <{req.model_version}> for Codebook <{req.cb_name}> with model config"
+                 f"<{req.model_config}>. ModelID: <{mid}>")
         dataset_metadata = DatasetManager.get_metadata(req.cb_name, req.dataset_version)
         model, embedding_layer, mid = ModelFactory.build_model(req, n_classes=len(dataset_metadata.labels))
 
         # train model
-        backend_logger.info(f"Starting training of model <{mid}>")
+        log.info(f"Starting training of model <{mid}>")
         # updating training status
         update_training_status(status_dict, mid, TrainingState.training, proc.pid)
         model.train(input_fn=lambda: input_fn(req, train=True), max_steps=req.max_steps_train)
 
         # evaluate model
-        backend_logger.info(f"Starting evaluation of model <{mid}>")
+        log.info(f"Starting evaluation of model <{mid}>")
         # updating training status
         update_training_status(status_dict, mid, TrainingState.evaluating, proc.pid)
         eval_results = model.evaluate(input_fn=lambda: input_fn(req, train=False), steps=req.max_steps_test)
         res_pp = pp.pformat(eval_results)
-        backend_logger.info(f"Evaluation results of model <{mid}>:\n {res_pp}")
+        log.info(f"Evaluation results of model <{mid}>:\n {res_pp}")
 
         # export # TODO this should be moved to ModelFactory
-        backend_logger.info(f"Starting export of model <{mid}>")
+        log.info(f"Starting export of model <{mid}>")
         # updating training status
         update_training_status(status_dict, mid, TrainingState.training, proc.pid)
         # create serving function
@@ -180,9 +179,9 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         estimator_path = model.export_saved_model(str(dst),
                                                   serving_input_fn)
         estimator_path = estimator_path.decode('utf-8')
-        backend_logger.info(f"Tensorflow exported model successfully at {estimator_path}")
+        log.info(f"Tensorflow exported model successfully at {estimator_path}")
         # move the exported model files to the mode dir (see export_saved_model docs)
-        backend_logger.info(f"Moving <{mid}> to <{str(dst)}>")
+        log.info(f"Moving <{mid}> to <{str(dst)}>")
         files = [f for f in Path(estimator_path).iterdir()]
         for f in files:
             shutil.move(str(f), str(f.parent.parent))
@@ -192,9 +191,9 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
 
         # TODO exception if fails
         assert ModelManager.is_available(req.cb_name, req.model_version, complete_check=True)
-        backend_logger.info(f"Successfully exported model <{mid}> at {estimator_path}")
-        backend_logger.info(f"Completed train-eval-export cycle for model <{mid}>")
-        backend_logger.info(f"Model <{mid}> stored at {str(dst)}")
+        log.info(f"Successfully exported model <{mid}> at {estimator_path}")
+        log.info(f"Completed train-eval-export cycle for model <{mid}>")
+        log.info(f"Model <{mid}> stored at {str(dst)}")
         # updating training status
         update_training_status(status_dict, mid, TrainingState.finished, proc.pid)
     except Exception as e:
@@ -205,14 +204,14 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         active_pids.pop(proc.pid, None)
         # remove logging intercept handlers
         tf.get_logger().removeHandler(intercept_handler)
-        backend_logger.removeHandler(intercept_handler)
+        logging.basicConfig(handlers=[], level=0)
 
 
 class LoggingInterceptHandler(logging.Handler):
     def emit(self, record):
         # Get corresponding Loguru level if it exists
         try:
-            level = logger.level(record.levelname).name
+            level = log.level(record.levelname).name
         except ValueError:
             level = record.levelno
 
@@ -222,4 +221,4 @@ class LoggingInterceptHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        log.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())

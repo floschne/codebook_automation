@@ -3,19 +3,7 @@ from typing import Tuple, Dict, List
 
 import tensorflow as tf
 from fastapi import UploadFile
-
-from api.model import ModelMetadata, TrainingRequest
-from logger import backend_logger
-from backend.db.redis_handler import RedisHandler
-from backend.data_handler import DataHandler
-from backend.dataset_manager import DatasetManager
-from backend.exceptions import ErroneousModelException, ModelNotAvailableException, NoDataForCodebookException, \
-    InvalidModelIdException
-import re
-from typing import Tuple, Dict, List
-
-import tensorflow as tf
-from fastapi import UploadFile
+from loguru import logger as log
 
 from api.model import ModelMetadata, TrainingRequest
 from backend.data_handler import DataHandler
@@ -23,7 +11,6 @@ from backend.dataset_manager import DatasetManager
 from backend.db.redis_handler import RedisHandler
 from backend.exceptions import ErroneousModelException, ModelNotAvailableException, NoDataForCodebookException, \
     InvalidModelIdException
-from logger import backend_logger
 
 
 class ModelManager(object):
@@ -31,7 +18,7 @@ class ModelManager(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
-            backend_logger.info('Instantiating ModelManager!')
+            log.info('Instantiating ModelManager!')
             cls._singleton = super(ModelManager, cls).__new__(cls)
         return cls._singleton
 
@@ -90,7 +77,7 @@ class ModelManager(object):
     @staticmethod
     def publish_model(r: TrainingRequest, eval_results: Dict[str, float]) -> ModelMetadata:
 
-        backend_logger.info(f"Generating model metadata for model '{r.model_version}' of Codebook '{r.cb_name}'")
+        log.info(f"Generating model metadata for model '{r.model_version}' of Codebook '{r.cb_name}'")
 
         dataset_metadata = DatasetManager.get_metadata(r.cb_name, r.dataset_version)
 
@@ -113,7 +100,7 @@ class ModelManager(object):
     def store_uploaded_model(cb_name: str, model_version: str, model_archive: UploadFile) -> str:
         # TODO register in redis
         # - create metadata for model or make sure it exists in the archive
-        backend_logger.info(f"Successfully received model archive for Codebook {cb_name}")
+        log.info(f"Successfully received model archive for Codebook {cb_name}")
         try:
             path = DataHandler.store_model(cb_name, model_archive, model_version)
         except Exception as e:
@@ -122,20 +109,19 @@ class ModelManager(object):
         if not ModelManager.is_available(cb_name):
             raise ErroneousModelException(model_version, cb_name,
                                           f"Archive contains no valid model for Codebook {cb_name} under {path}!")
-        backend_logger.info(
+        log.info(
             f"Successfully persisted model '{model_version}' for Codebook <{cb_name}> under {path}!")
         return str(path)
 
     @staticmethod
     def remove(cb_name: str, model_version: str):
         try:
-            backend_logger.info(f"Removing model '{model_version}' of Codebook {cb_name}")
+            log.info(f"Removing model '{model_version}' of Codebook {cb_name}")
             RedisHandler().unregister_model(cb_name, model_version)
             DataHandler.purge_model_directory(cb_name, model_version)
             return True
         except Exception as e:
             return False
-
 
     @staticmethod
     def list_models(cb_name) -> List[ModelMetadata]:

@@ -2,12 +2,12 @@ from typing import Tuple
 
 import tensorflow as tf
 import tensorflow_hub as hub
+from loguru import logger as log
 from tensorflow_hub.feature_column import DenseFeatureColumn
 
 from api.model import ModelConfig, TrainingRequest
 from backend import ModelManager, DataHandler
 from backend.exceptions import TFHubEmbeddingException
-from logger import backend_logger
 
 
 class ModelFactory(object):
@@ -15,7 +15,7 @@ class ModelFactory(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
-            backend_logger.info('Instantiating ModelFactory!')
+            log.info('Instantiating ModelFactory!')
             cls._singleton = super(ModelFactory, cls).__new__(cls)
 
         return cls._singleton

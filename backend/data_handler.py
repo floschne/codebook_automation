@@ -4,11 +4,11 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from fastapi import UploadFile
+from loguru import logger as log
 
 from api.model import DatasetMetadata, ModelMetadata
 from backend.exceptions import DatasetNotAvailableException, ModelNotAvailableException, NoDataForCodebookException
 from config import conf
-from logger import backend_logger
 
 
 class DataHandler(object):
@@ -20,7 +20,7 @@ class DataHandler(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
-            backend_logger.info('Instantiating DataHandler!')
+            log.info('Instantiating DataHandler!')
             cls._singleton = super(DataHandler, cls).__new__(cls)
 
             # read the data base path from config
@@ -51,7 +51,7 @@ class DataHandler(object):
         try:
             ds_dir = DataHandler.get_dataset_directory(cb_name, dataset_version=dataset_version, create=True)
             dst = ds_dir.joinpath(dataset_archive.filename)
-            backend_logger.info(f"Extracting dataset archive to {str(dst)}")
+            log.info(f"Extracting dataset archive to {str(dst)}")
             archive_path = DataHandler._store_uploaded_file(dataset_archive, dst)
             return DataHandler._extract_archive(archive=archive_path, dst=ds_dir)
         finally:
@@ -62,7 +62,7 @@ class DataHandler(object):
         ds_dir = DataHandler.get_dataset_directory(cb_name, dataset_version=dataset_metadata.version, create=False)
         dst = ds_dir.joinpath('metadata.json')
         with open(dst, 'w') as out:
-            backend_logger.info(f"Storing dataset metadata at {str(dst)}")
+            log.info(f"Storing dataset metadata at {str(dst)}")
             print(dataset_metadata.json(), file=out)
         assert dst.exists() and DatasetMetadata.parse_file(dst) == dataset_metadata  # TODO exception
         return dst
@@ -79,7 +79,7 @@ class DataHandler(object):
         try:
             model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version, create=True)
             dst = model_dir.joinpath(model_archive.filename)
-            backend_logger.info(f"Extracting model archive to {str(dst)}")
+            log.info(f"Extracting model archive to {str(dst)}")
             archive_path = DataHandler._store_uploaded_file(model_archive, dst)
             return DataHandler._extract_archive(archive=archive_path, dst=model_dir)
         finally:
@@ -90,7 +90,7 @@ class DataHandler(object):
         model_dir = DataHandler.get_model_directory(cb_name, model_version=model_metadata.version, create=False)
         dst = model_dir.joinpath('metadata.json')
         with open(dst, 'w') as out:
-            backend_logger.info(f"Storing model metadata at {str(dst)}")
+            log.info(f"Storing model metadata at {str(dst)}")
             print(model_metadata.json(), file=out)
         assert dst.exists() and ModelMetadata.parse_file(dst) == model_metadata  # TODO exception
         return dst
@@ -140,18 +140,18 @@ class DataHandler(object):
     @staticmethod
     def purge_dataset_directory(cb_name: str, dataset_version: str):
         dataset_dir = DataHandler.get_dataset_directory(cb_name, dataset_version=dataset_version)
-        backend_logger.warning(f"Permanently removing dataset '{dataset_version}' of Codebook '{cb_name}'")
+        log.warning(f"Permanently removing dataset '{dataset_version}' of Codebook '{cb_name}'")
         shutil.rmtree(dataset_dir)
 
     @staticmethod
     def purge_model_directory(cb_name: str, model_version: str):
         model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version)
-        backend_logger.warning(f"Permanently removing data of model '{model_version}' of Codebook '{cb_name}'")
+        log.warning(f"Permanently removing data of model '{model_version}' of Codebook '{cb_name}'")
         shutil.rmtree(model_dir)
 
     @staticmethod
     def _purge_data(cb_name: str):
-        backend_logger.warning(
+        log.warning(
             f"Permanently removing all data (including models and datasets) of Codebook <{cb_name}>!")
         data_directory = Path(DataHandler._DATA_ROOT, cb_name)
         shutil.rmtree(data_directory)

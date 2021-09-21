@@ -1,6 +1,10 @@
 api:
   port: 8081
 
+logging:
+  rotation: 500
+  level: DEBUG
+
 backend:
   data_root: ${oc.env:CBA_API_DATA_ROOT, ./data}
   use_gpu_for_prediction: 0
