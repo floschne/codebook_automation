@@ -1,4 +1,4 @@
-from .excepts import ErroneousMappingException, ModelNotAvailableException, \
+from backend.exceptions.excepts import ErroneousMappingException, ModelNotAvailableException, \
     ErroneousModelException, PredictionError, ModelInitializationException, ErroneousDatasetException, \
     InvalidModelIdException, DatasetNotAvailableException, NoDataForCodebookException, TFHubEmbeddingException
 

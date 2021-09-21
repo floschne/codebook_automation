@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse
 
+from api.model import BooleanResponse
 from logger import api_logger
-from ..model import BooleanResponse
 
 router = APIRouter()
 

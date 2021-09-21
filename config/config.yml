@@ -1,0 +1,11 @@
+api:
+  port: 8081
+
+backend:
+  data_root: ${oc.env:CBA_API_DATA_ROOT, ./data}
+  use_gpu_for_prediction: 0
+  use_gpu_for_training: 0
+
+  redis:
+    host: ${oc.env:CBA_API_REDIS_HOST, localhost}
+    port: ${oc.env:CBA_API_REDIS_PORT, 6379}

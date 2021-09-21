@@ -1,1 +1,1 @@
-from .redis_handler import RedisHandler
+from backend.db.redis_handler import RedisHandler

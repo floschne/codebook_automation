@@ -1,4 +1,3 @@
-import json
 import logging
 import multiprocessing
 import os
@@ -13,11 +12,10 @@ import tensorflow as tf
 from loguru import logger
 
 from api.model import TrainingResponse, TrainingRequest, TrainingState, TrainingStatus
+from backend import DataHandler, DatasetManager, ModelManager
+from backend.training.model_factory import ModelFactory
+from config import conf
 from logger import backend_logger
-from .model_factory import ModelFactory
-from .. import DataHandler
-from ..dataset_manager import DatasetManager
-from ..model_manager import ModelManager
 
 
 class Trainer(object):
@@ -31,11 +29,8 @@ class Trainer(object):
         if cls._singleton is None:
             backend_logger.info('Instantiating Trainer!')
 
-            # load config file
-            config = json.load(open("config/config.json", "r"))
-
             # make sure GPU is available for ModelTrainer (if there is one)
-            if not bool(config['backend']['use_gpu_for_training']):
+            if not bool(conf.backend.use_gpu_for_training):
                 backend_logger.info("GPU support for training disabled!")
                 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
             else:

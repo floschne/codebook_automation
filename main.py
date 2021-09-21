@@ -10,6 +10,7 @@ from backend.exceptions import ModelNotAvailableException, ErroneousMappingExcep
     PredictionError, ModelInitializationException, ErroneousDatasetException, \
     NoDataForCodebookException, DatasetNotAvailableException, InvalidModelIdException
 from logger import backend_logger
+from config import conf
 
 # create the main app
 app = FastAPI(title="Codebook Automation API",
@@ -132,11 +133,8 @@ async def dataset_not_available_exception_exception_handler(request: Request, ex
 
 
 if __name__ == "__main__":
-    # load config file
-    config = json.load(open("config/config.json", "r"))
-
     # read port from config
-    port = config['api']['api_port']
-    assert port is not None and isinstance(port, int), "The api_port has to be an integer! E.g. 8081"
+    port = int(conf.api.port)
+    assert port is not None and isinstance(port, int) and port > 0, "The api_port has to be an integer! E.g. 8081"
 
     uvicorn.run(app, host="0.0.0.0", port=port, debug=True)

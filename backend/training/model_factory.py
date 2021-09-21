@@ -5,10 +5,9 @@ import tensorflow_hub as hub
 from tensorflow_hub.feature_column import DenseFeatureColumn
 
 from api.model import ModelConfig, TrainingRequest
+from backend import ModelManager, DataHandler
+from backend.exceptions import TFHubEmbeddingException
 from logger import backend_logger
-from .. import ModelManager
-from ..data_handler import DataHandler
-from ..exceptions import TFHubEmbeddingException
 
 
 class ModelFactory(object):

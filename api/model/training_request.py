@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from .model_config import ModelConfig
+from api.model.model_config import ModelConfig
 
 
 class TrainingRequest(BaseModel):

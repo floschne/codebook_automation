@@ -6,10 +6,10 @@ import tensorflow as tf
 from fastapi import UploadFile
 
 from api.model import DatasetMetadata
+from backend.data_handler import DataHandler
+from backend.db.redis_handler import RedisHandler
+from backend.exceptions import ErroneousDatasetException, DatasetNotAvailableException
 from logger import backend_logger
-from .data_handler import DataHandler
-from .db.redis_handler import RedisHandler
-from .exceptions import ErroneousDatasetException, DatasetNotAvailableException
 
 
 class DatasetManager(object):
