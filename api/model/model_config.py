@@ -31,6 +31,6 @@ class ModelConfig(BaseModel):
                                 example="https://tfhub.dev/google/universal-sentence-encoder/2")
     hidden_units: List[int] = Field(default=[1024, 1024, 512, 64], example=[1024, 1024, 512, 64])
     dropout: float = Field(default=0.2, example=0.2)
-    optimizer: OptimizerIdentifier = "adam"
+    optimizer: OptimizerIdentifier = "Adam"
     early_stopping: bool = Field(default=False, example=False)
     activation_fn: ActivationFunctionIdentifier = "relu"
