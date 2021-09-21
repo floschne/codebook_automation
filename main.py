@@ -1,15 +1,13 @@
-import json
-
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from loguru import logger as log
 
 from api.routers import general, model, prediction, training, dataset
 from backend import DataHandler, ModelFactory, ModelManager, Predictor, Trainer, DatasetManager, RedisHandler
 from backend.exceptions import ModelNotAvailableException, ErroneousMappingException, ErroneousModelException, \
     PredictionError, ModelInitializationException, ErroneousDatasetException, \
     NoDataForCodebookException, DatasetNotAvailableException, InvalidModelIdException
-from logger import backend_logger
 from config import conf
 
 # create the main app
@@ -21,6 +19,9 @@ app = FastAPI(title="Codebook Automation API",
 @app.on_event("startup")
 def startup_event():
     try:
+        # setup loguru logging
+        log.add('logs/{time}.log', rotation=f"{conf.logging.rotation} MB", level=conf.logging.level)
+
         # instantiate singletons
         DataHandler()
         RedisHandler()
@@ -31,7 +32,7 @@ def startup_event():
         Trainer()
     except Exception as e:
         msg = f"Error while starting the API! Exception: {str(e)}"
-        backend_logger.error(msg)
+        log.error(msg)
         raise SystemExit(msg)
 
 
@@ -51,7 +52,7 @@ app.include_router(training.router, prefix=training.PREFIX)
 # custom exception handlers
 @app.exception_handler(PredictionError)
 async def prediction_error_handler(request: Request, exc: PredictionError):
-    backend_logger.error(exc.message)
+    log.error(exc.message)
     return JSONResponse(
         status_code=500,
         content={"message": exc.message}
@@ -60,7 +61,7 @@ async def prediction_error_handler(request: Request, exc: PredictionError):
 
 @app.exception_handler(ModelNotAvailableException)
 async def model_not_available_exception_handler(request: Request, exc: ModelNotAvailableException):
-    backend_logger.error(exc.message)
+    log.error(exc.message)
     return JSONResponse(
         status_code=404,
         content={"message": exc.message}
@@ -69,7 +70,7 @@ async def model_not_available_exception_handler(request: Request, exc: ModelNotA
 
 @app.exception_handler(ModelInitializationException)
 async def model_initialization_exception_handler(request: Request, exc: ModelInitializationException):
-    backend_logger.error(exc.message)
+    log.error(exc.message)
     return JSONResponse(
         status_code=500,
         content={"message": exc.message,
@@ -79,7 +80,7 @@ async def model_initialization_exception_handler(request: Request, exc: ModelIni
 
 @app.exception_handler(ErroneousMappingException)
 async def erroneous_mapping_exception_handler(request: Request, exc: ErroneousMappingException):
-    backend_logger.error(exc.message)
+    log.error(exc.message)
     return JSONResponse(
         status_code=400,
         content={"message": exc.message}
@@ -88,7 +89,7 @@ async def erroneous_mapping_exception_handler(request: Request, exc: ErroneousMa
 
 @app.exception_handler(ErroneousModelException)
 async def erroneous_model_exception_handler(request: Request, exc: ErroneousModelException):
-    backend_logger.error(exc.message)
+    log.error(exc.message)
     return JSONResponse(
         status_code=500,
         content={"message": exc.message}
@@ -97,7 +98,7 @@ async def erroneous_model_exception_handler(request: Request, exc: ErroneousMode
 
 @app.exception_handler(ErroneousDatasetException)
 async def erroneous_dataset_exception_handler(request: Request, exc: ErroneousDatasetException):
-    backend_logger.error(exc.message)
+    log.error(exc.message)
     return JSONResponse(
         status_code=400,
         content={"message": exc.message,
@@ -107,7 +108,7 @@ async def erroneous_dataset_exception_handler(request: Request, exc: ErroneousDa
 
 @app.exception_handler(NoDataForCodebookException)
 async def no_data_for_codebook_exception_handler(request: Request, exc: NoDataForCodebookException):
-    backend_logger.error(exc.message)
+    log.error(exc.message)
     return JSONResponse(
         status_code=404,
         content={"message": exc.message}
@@ -116,7 +117,7 @@ async def no_data_for_codebook_exception_handler(request: Request, exc: NoDataFo
 
 @app.exception_handler(InvalidModelIdException)
 async def invalid_model_id_exception_exception_handler(request: Request, exc: InvalidModelIdException):
-    backend_logger.error(exc.message)
+    log.error(exc.message)
     return JSONResponse(
         status_code=400,
         content={"message": exc.message}
@@ -125,7 +126,7 @@ async def invalid_model_id_exception_exception_handler(request: Request, exc: In
 
 @app.exception_handler(DatasetNotAvailableException)
 async def dataset_not_available_exception_exception_handler(request: Request, exc: DatasetNotAvailableException):
-    backend_logger.error(exc.message)
+    log.error(exc.message)
     return JSONResponse(
         status_code=404,
         content={"message": exc.message}

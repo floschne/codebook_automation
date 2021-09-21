@@ -3,6 +3,7 @@ from multiprocessing import Process, Queue
 from typing import Dict, List, Tuple, Union
 
 import tensorflow as tf
+from loguru import logger as log
 
 from api.model import DocumentDTO, PredictionResult, MultiDocumentPredictionResult, PredictionRequest, \
     MultiDocumentPredictionRequest, TagLabelMapping
@@ -10,7 +11,6 @@ from backend.exceptions import ErroneousModelException, ErroneousMappingExceptio
     ModelNotAvailableException
 from backend.model_manager import ModelManager
 from config import conf
-from logger import backend_logger
 
 
 # TODO
@@ -25,14 +25,14 @@ class Predictor(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
-            backend_logger.info('Instantiating Predictor!')
+            log.info('Instantiating Predictor!')
 
             # disable GPU for prediction if the configured this way.
             if not bool(conf.backend.use_gpu_for_prediction):
-                backend_logger.info("GPU support for prediction disabled!")
+                log.info("GPU support for prediction disabled!")
                 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
             else:
-                backend_logger.info("GPU support for prediction enabled!")
+                log.info("GPU support for prediction enabled!")
 
             cls._singleton = super(Predictor, cls).__new__(cls)
 
@@ -60,10 +60,10 @@ class Predictor(object):
                 q.put(self._build_prediction_result(r, prediction))
             except Exception as e:
                 # if any error occurs, return
-                backend_logger.error("Error occurred within prediction process with PID " + str(os.getpid()) + "!")
-                backend_logger.error(type(e))
+                log.error("Error occurred within prediction process with PID " + str(os.getpid()) + "!")
+                log.error(type(e))
                 if hasattr(e, 'message'):
-                    backend_logger.error(e.message)
+                    log.error(e.message)
                 return
 
         def p_multi(r: MultiDocumentPredictionRequest, q: Queue):
@@ -82,29 +82,29 @@ class Predictor(object):
                 q.put(self._build_multi_prediction_result(r, predictions))
             except Exception as e:
                 # if any error occurs, return
-                backend_logger.error("Error occurred within prediction process with PID " + str(os.getpid()) + "!")
-                backend_logger.error(type(e))
+                log.error("Error occurred within prediction process with PID " + str(os.getpid()) + "!")
+                log.error(type(e))
                 if hasattr(e, 'message'):
-                    backend_logger.error(e.message)
+                    log.error(e.message)
                 return
 
         queue = Queue()
 
         if isinstance(req, PredictionRequest):
-            backend_logger.info("Spawning new single document prediction process.")
+            log.info("Spawning new single document prediction process.")
             proc = Process(target=p_single, args=(req, queue,))
         elif isinstance(req, MultiDocumentPredictionRequest):
-            backend_logger.info("Spawning new multi document prediction process.")
+            log.info("Spawning new multi document prediction process.")
             proc = Process(target=p_multi, args=(req, queue,))
 
         proc.start()
-        backend_logger.info("Started prediction process with PID " + str(proc.pid) + ".")
+        log.info("Started prediction process with PID " + str(proc.pid) + ".")
 
-        backend_logger.info("Waiting for prediction process with PID " + str(proc.pid) + " ...")
+        log.info("Waiting for prediction process with PID " + str(proc.pid) + " ...")
         proc.join()
 
         if not queue.empty():
-            backend_logger.info("Prediction process with PID " + str(proc.pid) + " finished successfully!")
+            log.info("Prediction process with PID " + str(proc.pid) + " finished successfully!")
             res = queue.get()
             queue.close()
             return res
@@ -112,7 +112,7 @@ class Predictor(object):
             if proc.is_alive():
                 proc.kill()
             queue.close()
-            backend_logger.error(
+            log.error(
                 "Prediction process with PID " + str(proc.pid) + " finished erroneously! Process terminated!")
             raise PredictionError()
 

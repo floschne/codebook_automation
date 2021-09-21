@@ -4,12 +4,12 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from fastapi import UploadFile
+from loguru import logger as log
 
 from api.model import DatasetMetadata
 from backend.data_handler import DataHandler
 from backend.db.redis_handler import RedisHandler
 from backend.exceptions import ErroneousDatasetException, DatasetNotAvailableException
-from logger import backend_logger
 
 
 class DatasetManager(object):
@@ -17,13 +17,13 @@ class DatasetManager(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
-            backend_logger.info('Instantiating DatasetManager!')
+            log.info('Instantiating DatasetManager!')
             cls._singleton = super(DatasetManager, cls).__new__(cls)
         return cls._singleton
 
     @staticmethod
     def store_archive(cb_name: str, dataset_version: str, dataset_archive: UploadFile) -> DatasetMetadata:
-        backend_logger.info(f"Successfully received dataset archive for Codebook {cb_name}")
+        log.info(f"Successfully received dataset archive for Codebook {cb_name}")
 
         try:
             path = DataHandler.store_dataset(cb_name=cb_name, dataset_archive=dataset_archive,
@@ -39,7 +39,7 @@ class DatasetManager(object):
                                             f"Error while persisting dataset for Codebook {cb_name} under {str(path)}")
 
         RedisHandler().register_dataset(cb_name, metadata)
-        backend_logger.info(
+        log.info(
             f"Successfully persisted dataset '{dataset_version}' for Codebook <{cb_name}> under {str(path)} and "
             f"metadata under {metadata_path}")
         return metadata
@@ -109,7 +109,7 @@ class DatasetManager(object):
 
     @staticmethod
     def _generate_metadata(cb_name: str, dataset_version: str = "default", ) -> DatasetMetadata:
-        backend_logger.info(f"Generating dataset '{dataset_version}' metadata file for Codebook <{cb_name}>")
+        log.info(f"Generating dataset '{dataset_version}' metadata file for Codebook <{cb_name}>")
         # load and prepare the dataframes
         train_df, test_df = DatasetManager._load_dataframes(cb_name, dataset_version)
         train_set, test_set, label_categories = DatasetManager._prepare_dataframes(train_df, test_df)
@@ -150,7 +150,7 @@ class DatasetManager(object):
     @staticmethod
     def remove(cb_name: str, dataset_version: str):
         try:
-            backend_logger.info(f"Removing dataset '{dataset_version}' of Codebook {cb_name}")
+            log.info(f"Removing dataset '{dataset_version}' of Codebook {cb_name}")
             RedisHandler().unregister_dataset(cb_name, dataset_version)
             DataHandler.purge_dataset_directory(cb_name=cb_name, dataset_version=dataset_version)
             return True

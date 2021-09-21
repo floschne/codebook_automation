@@ -1,11 +1,11 @@
 from typing import List, Union
 
 import redis
+from loguru import logger as log
 
 from api.model import ModelMetadata, DatasetMetadata
 from backend.exceptions import ModelNotAvailableException, DatasetNotAvailableException
 from config import conf
-from logger import backend_logger
 
 
 class RedisHandler(object):
@@ -17,7 +17,7 @@ class RedisHandler(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
-            backend_logger.info('Instantiating RedisHandler!')
+            log.info('Instantiating RedisHandler!')
             cls._singleton = super(RedisHandler, cls).__new__(cls)
 
             # setup redis
@@ -53,22 +53,22 @@ class RedisHandler(object):
 
     def register_model(self, cb_name: str, metadata: ModelMetadata):
         assert self.__models.sadd(cb_name, metadata.json()) == 1
-        backend_logger.info(f"Successfully registered model '{metadata.version}' of Codebook '{cb_name}'!")
+        log.info(f"Successfully registered model '{metadata.version}' of Codebook '{cb_name}'!")
 
     def register_dataset(self, cb_name: str, metadata: DatasetMetadata):
         assert self.__datasets.sadd(cb_name, metadata.json()) == 1
-        backend_logger.info(
+        log.info(
             f"Successfully registered dataset '{metadata.version}' of Codebook '{cb_name}'!")
 
     def unregister_model(self, cb_name: str, model_version: str):
         metadata = self.get_model_metadata(cb_name, model_version)
         assert self.__models.srem(cb_name, metadata.json()) == 1
-        backend_logger.info(f"Successfully unregistered model '{model_version}' of Codebook '{cb_name}'!")
+        log.info(f"Successfully unregistered model '{model_version}' of Codebook '{cb_name}'!")
 
     def unregister_dataset(self, cb_name: str, dataset_version: str):
         metadata = self.get_dataset_metadata(cb_name, dataset_version)
         assert self.__datasets.srem(cb_name, metadata.json()) == 1
-        backend_logger.info(f"Successfully unregistered dataset '{dataset_version}' of Codebook '{cb_name}'")
+        log.info(f"Successfully unregistered dataset '{dataset_version}' of Codebook '{cb_name}'")
 
     def get_model_metadata(self, cb_name: str, model_version: str) -> ModelMetadata:
         return self.__filter_by_version(cb_name, self.list_models(cb_name), model_version)
