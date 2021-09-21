@@ -1,5 +1,5 @@
 api:
-  api_port: 8081
+  port: 8081
 
 backend:
   data_root: ${oc.env:CBA_API_DATA_ROOT, ./data}
