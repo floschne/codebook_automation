@@ -1,11 +1,14 @@
 sample_txt
+demo_data
 data
 notebooks
 .idea
 .git
+.github
 .pytest_cache
 __pycache__
 cba_webapp
+cba_webapp__
 .travis.yml
 .gitignore
 redis-data
