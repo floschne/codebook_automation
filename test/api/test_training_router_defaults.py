@@ -80,6 +80,7 @@ def test_start_training(train_req: TrainingRequest, client: TestClient):
 
 @pytest.mark.run(order=5)
 def test_training_status_running(client: TestClient):
+    # noinspection PyUnresolvedReferences
     train_resp = pytest.train_resp
     response = client.post("/training/status/", json=train_resp.dict())
     assert response.status_code == status.HTTP_200_OK
@@ -89,6 +90,7 @@ def test_training_status_running(client: TestClient):
 
 @pytest.mark.run(order=6)
 def test_wait_for_training_finish(client: TestClient):
+    # noinspection PyUnresolvedReferences
     train_resp = pytest.train_resp
     response = client.post("/training/status/", json=train_resp.dict())
     assert response.status_code == status.HTTP_200_OK
