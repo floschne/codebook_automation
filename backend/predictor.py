@@ -7,6 +7,7 @@ from loguru import logger as log
 
 from api.model import DocumentDTO, PredictionResult, MultiDocumentPredictionResult, PredictionRequest, \
     MultiDocumentPredictionRequest, TagLabelMapping
+from backend import DatasetManager
 from backend.exceptions import ErroneousModelException, ErroneousMappingException, PredictionError, \
     ModelNotAvailableException
 from backend.model_manager import ModelManager
@@ -157,14 +158,12 @@ class Predictor(object):
     def _build_multi_prediction_result(req: MultiDocumentPredictionRequest,
                                        preds: List) -> MultiDocumentPredictionResult:
 
-        pred_labels = [p['classes'].numpy()[0, 0].decode("utf-8") for p in preds]
+        # get the actual labels from the predicted class ids via the dataset id to label map
+        mm = ModelManager().get_metadata(req.cb_name, req.model_version)
+        dm = DatasetManager().get_metadata(req.cb_name, mm.dataset_version)
+        pred_labels = [dm.labels[str(p['class_ids'].numpy()[0, 0])] for p in preds]
 
-        classes = list()
-        for c in preds[0]['all_classes'].numpy()[0]:
-            if preds[0]['all_classes'].dtype == tf.string:
-                classes.append(c.decode("utf-8"))
-            else:
-                classes.append(c)
+        classes = list(dm.labels.values())
 
         probs_list = [p['probabilities'].numpy()[0].tolist() for p in preds]
 
@@ -172,12 +171,11 @@ class Predictor(object):
         if not len(probs_list[0]) == len(classes):
             raise ErroneousModelException(cb_name=cb_name)
 
-        # apply mapping
+        # apply CodeAnno tag to class label mapping
         mapping = req.mapping
         probabilities, pred_tags = dict(), dict()
         for pred_label, probs, doc in zip(pred_labels, probs_list, req.docs):
             mapped_probs, pred_tag = Predictor._apply_mapping(pred_label, classes, probs, mapping, cb_name)
-
             probabilities[doc.doc_id] = mapped_probs
             pred_tags[doc.doc_id] = pred_tag
 
