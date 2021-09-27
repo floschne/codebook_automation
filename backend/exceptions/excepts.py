@@ -22,6 +22,14 @@ class DatasetNotAvailableException(Exception):
         self.message = f"Dataset <{dataset_version}> for Codebook <{cb_name}> not available!"
 
 
+class TagLabelMappingNotAvailableException(Exception):
+    def __init__(self, model_version: str = None, cb_name: str = None):
+        self.model_version = model_version,
+        self.codebook = cb_name
+
+        self.message = f"TagLabelMapping with version <{model_version}> for Codebook <{cb_name}> not available!"
+
+
 class InvalidModelIdException(Exception):
     def __init__(self, model_id: str):
         self.model_id = model_id
