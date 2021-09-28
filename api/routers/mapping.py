@@ -3,6 +3,7 @@ from loguru import logger as log
 
 from api.model import TagLabelMapping
 from backend import RedisHandler
+from backend.exceptions import TagLabelMappingNotAvailableException
 
 PREFIX = "/mapping"
 router = APIRouter()
@@ -29,5 +30,9 @@ async def unregister(cb_name: str, model_version: str):
 @router.post("/update/", tags=["mapping"])
 async def update(cb_name: str, mapping: TagLabelMapping):
     log.info(f"POST request on {PREFIX}/update")
-    RedisHandler().unregister_mapping(cb_name, mapping.version)
+    try:
+        # if a mapping is not yet registered it cannot be unregistered and an exception is thrown. this is ignored here
+        RedisHandler().unregister_mapping(cb_name, mapping.version)
+    except TagLabelMappingNotAvailableException as e:
+        pass
     RedisHandler().register_mapping(cb_name, mapping)
