@@ -44,6 +44,7 @@ class ModelManager(object):
                 return tf.saved_model.contains_saved_model(model_dir)
         except (ModelNotAvailableException, NoDataForCodebookException):
             return False
+        return True
 
     @staticmethod
     def load(cb_name: str, model_version: str = "default"):
