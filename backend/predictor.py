@@ -126,14 +126,12 @@ class Predictor(object):
     @staticmethod
     def _build_prediction_result(req: PredictionRequest, pred) -> PredictionResult:
 
-        pred_label = pred['classes'].numpy()[0, 0].decode("utf-8")
+        # get the actual labels from the predicted class ids via the dataset id to label map
+        mm = ModelManager().get_metadata(req.cb_name, req.model_version)
+        dm = DatasetManager().get_metadata(req.cb_name, mm.dataset_version)
+        pred_label = dm.labels[str(pred['class_ids'].numpy()[0, 0])]
 
-        classes = list()
-        for c in pred['all_classes'].numpy()[0]:
-            if pred['all_classes'].dtype == tf.string:
-                classes.append(c.decode("utf-8"))
-            else:
-                classes.append(c)
+        classes = list(dm.labels.values())
 
         probs = pred['probabilities'].numpy()[0].tolist()
 
