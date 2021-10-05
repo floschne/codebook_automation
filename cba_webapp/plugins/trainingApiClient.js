@@ -1,7 +1,7 @@
 export default ({
-  app,
-  axios
-}, inject) => {
+                  app,
+                  axios
+                }, inject) => {
   const jsonHeaderConfig = {
     headers: {
       Accept: 'application/json'
@@ -13,7 +13,7 @@ export default ({
     train: async (formData) => {
       let trainingResponse
       try {
-        const resp = await app.$axios.post('/api/training/train/', formData, jsonHeaderConfig)
+        const resp = await app.$axios.post(`${app.$config.ctxPath}api/training/train/`, formData, jsonHeaderConfig)
         if (resp.status === 200) {
           trainingResponse = resp.data
         } else {
@@ -28,7 +28,7 @@ export default ({
     getLog: async (modelId) => {
       let trainingLog
       try {
-        const resp = await app.$axios.post('/api/training/log/', {
+        const resp = await app.$axios.post(`${app.$config.ctxPath}api/training/log/`, {
           model_id: modelId
         }, jsonHeaderConfig)
         if (resp.status === 200) {
@@ -45,7 +45,7 @@ export default ({
     getStatus: async (modelId) => {
       let trainingStatus
       try {
-        const resp = await app.$axios.post('/api/training/status/', {
+        const resp = await app.$axios.post(`${app.$config.ctxPath}api/training/status/`, {
           model_id: modelId
         }, jsonHeaderConfig)
         if (resp.status === 200) {

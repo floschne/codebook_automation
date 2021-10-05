@@ -1,21 +1,38 @@
 const proxyConfig = () => {
   let proxyTarget = ''
+  const ctxPath = process.env.CBA_APP_CONTEXT_PATH || '/'
 
-  if (process.env.CBA_APP_DEPLOY === 'local') {
-    proxyTarget = 'http://localhost:8081/'
-  } else {
+  if (process.env.CBA_APP_DEPLOY === 'docker') {
     const dockerApiHost = process.env.CBA_APP_API_HOST
     const dockerApiPort = process.env.CBA_APP_API_PORT
 
     proxyTarget = 'http://' + dockerApiHost + ':' + dockerApiPort + '/'
+  } else {
+    proxyTarget = 'http://localhost:8081/'
   }
 
-  return {
-    '/api/': {
-      target: proxyTarget,
-      pathRewrite: { '^/api/': '' }
-    }
+  // https://github.com/chimurai/http-proxy-middleware/blob/master/recipes/pathRewrite.md#custom-rewrite-function
+  const apiCustomRewrite = (pth, req) => {
+    const ctx = `${ctxPath}api/`
+    return pth.replace(ctx, '/')
   }
+
+  // https://github.com/chimurai/http-proxy-middleware#context-matching
+  const apiCustomMatching = (pathname, req) => {
+    const ctx = `${ctxPath}api/`
+    return pathname.match(ctx)
+  }
+
+  // https://github.com/nuxt-community/proxy-module/issues/57
+  return [
+    [
+      apiCustomMatching,
+      {
+        target: proxyTarget,
+        pathRewrite: apiCustomRewrite,
+      },
+    ],
+  ]
 }
 
 export default {
@@ -23,7 +40,7 @@ export default {
   head: {
     title: 'CBA WebApp',
     meta: [
-      { charset: 'utf-8' },
+      {charset: 'utf-8'},
       {
         name: 'viewport',
         content: 'width=device-width, initial-scale=1'
@@ -100,5 +117,11 @@ export default {
     port: 3000, // default: 3000
     host: '0.0.0.0', // default: localhost,
     timing: false
-  }
+  },
+
+  // https://nuxtjs.org/docs/2.x/directory-structure/nuxt-config#runtimeconfig
+  publicRuntimeConfig: {
+    ctxPath: process.env.CBA_APP_CONTEXT_PATH || '',
+  },
+
 }
