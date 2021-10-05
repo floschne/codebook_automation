@@ -3,11 +3,12 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from loguru import logger as log
 
-from api.routers import general, model, prediction, training, dataset
+from api.routers import general, model, prediction, training, dataset, mapping
 from backend import DataHandler, ModelFactory, ModelManager, Predictor, Trainer, DatasetManager, RedisHandler
 from backend.exceptions import ModelNotAvailableException, ErroneousMappingException, ErroneousModelException, \
     PredictionError, ModelInitializationException, ErroneousDatasetException, \
-    NoDataForCodebookException, DatasetNotAvailableException, InvalidModelIdException
+    NoDataForCodebookException, DatasetNotAvailableException, InvalidModelIdException, \
+    TagLabelMappingNotAvailableException
 from config import conf
 
 # create the main app
@@ -47,6 +48,7 @@ app.include_router(dataset.router, prefix=dataset.PREFIX)
 app.include_router(model.router, prefix=model.PREFIX)
 app.include_router(prediction.router, prefix=prediction.PREFIX)
 app.include_router(training.router, prefix=training.PREFIX)
+app.include_router(mapping.router, prefix=mapping.PREFIX)
 
 
 # custom exception handlers
@@ -61,6 +63,15 @@ async def prediction_error_handler(request: Request, exc: PredictionError):
 
 @app.exception_handler(ModelNotAvailableException)
 async def model_not_available_exception_handler(request: Request, exc: ModelNotAvailableException):
+    log.error(exc.message)
+    return JSONResponse(
+        status_code=404,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(TagLabelMappingNotAvailableException)
+async def mapping_not_available_exception_handler(request: Request, exc: TagLabelMappingNotAvailableException):
     log.error(exc.message)
     return JSONResponse(
         status_code=404,

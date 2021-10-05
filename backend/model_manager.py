@@ -34,12 +34,17 @@ class ModelManager(object):
         """
         try:
             if not complete_check:
-                return RedisHandler().get_model_metadata(cb_name=cb_name, model_version=model_version) is not None
+                try:
+                    RedisHandler().get_model_metadata(cb_name=cb_name, model_version=model_version)
+                except ModelNotAvailableException as e:
+                    log.info(e.message)
+                    return False
             else:
                 model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version)
                 return tf.saved_model.contains_saved_model(model_dir)
         except (ModelNotAvailableException, NoDataForCodebookException):
             return False
+        return True
 
     @staticmethod
     def load(cb_name: str, model_version: str = "default"):
