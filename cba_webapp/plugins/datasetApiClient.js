@@ -28,8 +28,12 @@ export default ({
         const resp = await app.$axios.put(`${app.$config.ctxPath}api/dataset/upload/`, formData, multipartHeaderConfig)
         metadata = resp.data
       } catch (err) {
-        metadata = null
-        console.error(err)
+        if (err.response) {
+          metadata = err.response.data
+          console.error(metadata)
+        } else {
+          metadata = null
+        }
       }
       return metadata
     },

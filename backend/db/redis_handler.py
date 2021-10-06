@@ -5,7 +5,7 @@ from loguru import logger as log
 
 from api.model import ModelMetadata, DatasetMetadata, TagLabelMapping
 from backend.exceptions import ModelNotAvailableException, DatasetNotAvailableException, \
-    TagLabelMappingNotAvailableException
+    TagLabelMappingNotAvailableException, RedisError
 from config import conf
 
 
@@ -56,28 +56,32 @@ class RedisHandler(object):
         return filtered[0]
 
     def register_model(self, cb_name: str, metadata: ModelMetadata):
-        assert self.__models.sadd(cb_name, metadata.json()) == 1
+        if not self.__models.sadd(cb_name, metadata.json()) == 1:
+            raise RedisError(f"Error while registering model '{metadata.version}' of Codebook '{cb_name}'!")
         log.info(f"Successfully registered model '{metadata.version}' of Codebook '{cb_name}'!")
 
     def register_dataset(self, cb_name: str, metadata: DatasetMetadata):
-        assert self.__datasets.sadd(cb_name, metadata.json()) == 1
-        log.info(
-            f"Successfully registered dataset '{metadata.version}' of Codebook '{cb_name}'!")
+        if not self.__datasets.sadd(cb_name, metadata.json()) == 1:
+            raise RedisError(f"Error while registering dataset '{metadata.version}' of Codebook '{cb_name}'!")
+        log.info(f"Successfully registered dataset '{metadata.version}' of Codebook '{cb_name}'!")
 
     def register_mapping(self, cb_name: str, mapping: TagLabelMapping):
-        assert self.__mappings.sadd(cb_name, mapping.json()) == 1
+        if not self.__mappings.sadd(cb_name, mapping.json()) == 1:
+            raise RedisError(
+                f"Error while registering TagLabelMapping for Codebook '{cb_name}' and model version '{mapping.version}'!")
         log.info(
-            f"Successfully registered TagLabelMapping for Codebook '{cb_name}',"
-            f" model version '{mapping.version}'!")
+            f"Successfully registered TagLabelMapping for Codebook '{cb_name}' and model version '{mapping.version}'!")
 
     def unregister_model(self, cb_name: str, model_version: str):
         metadata = self.get_model_metadata(cb_name, model_version)
-        assert self.__models.srem(cb_name, metadata.json()) == 1
+        if not self.__models.srem(cb_name, metadata.json()) == 1:
+            raise RedisError(f"Error while unregistering model '{model_version}' of Codebook '{cb_name}'!")
         log.info(f"Successfully unregistered model '{model_version}' of Codebook '{cb_name}'!")
 
     def unregister_dataset(self, cb_name: str, dataset_version: str):
         metadata = self.get_dataset_metadata(cb_name, dataset_version)
-        assert self.__datasets.srem(cb_name, metadata.json()) == 1
+        if not self.__datasets.srem(cb_name, metadata.json()) == 1:
+            raise RedisError(f"Error while unregistering dataset '{dataset_version}' of Codebook '{cb_name}'")
         log.info(f"Successfully unregistered dataset '{dataset_version}' of Codebook '{cb_name}'")
 
     def unregister_mapping(self, cb_name: str, model_version: str):

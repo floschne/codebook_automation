@@ -15,7 +15,7 @@ from backend.exceptions import ErroneousDatasetException, DatasetNotAvailableExc
 class DatasetManager(object):
     _singleton = None
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: object, **kwargs: object):
         if cls._singleton is None:
             log.info('Instantiating DatasetManager!')
             cls._singleton = super(DatasetManager, cls).__new__(cls)
@@ -32,11 +32,8 @@ class DatasetManager(object):
             metadata_path = DataHandler.store_dataset_metadata(cb_name=cb_name, dataset_metadata=metadata)
         except Exception as e:
             raise ErroneousDatasetException(dataset_version, cb_name,
-                                            f"Error while persisting dataset for Codebook {cb_name}!", caused_by=str(e))
-
-        if not DatasetManager._is_valid(cb_name, dataset_version=dataset_version):
-            raise ErroneousDatasetException(dataset_version, cb_name,
-                                            f"Error while persisting dataset for Codebook {cb_name} under {str(path)}")
+                                            f"Error while persisting dataset '{dataset_version}' for Codebook {cb_name}!",
+                                            caused_by=str(e))
 
         RedisHandler().register_dataset(cb_name, metadata)
         log.info(
@@ -92,19 +89,28 @@ class DatasetManager(object):
     def _load_dataframes(cb_name: str, dataset_version: str = "default") -> Tuple[pd.DataFrame, pd.DataFrame]:
         dataset_dir = DataHandler.get_dataset_directory(cb_name, dataset_version=dataset_version)
 
-        # make sure train.csv & test.csv is available and has two columns 'text' & 'label'
+        # make sure train.csv & test.csv is available and has two columns 'text' and 'label'
         train_csv = dataset_dir.joinpath("train.csv")
         test_csv = dataset_dir.joinpath("test.csv")
 
         if not train_csv.exists() or not test_csv.exists():
             raise DatasetNotAvailableException(cb_name=cb_name, dataset_version=dataset_version)
         else:
-            # TODO
-            #  - this might be very inefficient for large datasets?!
-            #  - use chunks for large datasets
-            #  - use feather format (to_feather , read_feather)
-            train_df = pd.read_csv(train_csv)
-            test_df = pd.read_csv(test_csv)
+            # load the dataframes with no header and set the column names to 'text' and 'label'
+            train_df = pd.read_csv(train_csv, header=None)[1:].dropna()
+            if len(train_df.columns) != 2:
+                raise ErroneousDatasetException(msg=f"Training split of Dataset '{dataset_version}' for Codebook "
+                                                    "'{cb_name}' is erroneous because it does not contain exactly two"
+                                                    " columns ('text' and 'label')!")
+            train_df.columns = ['text', 'label']
+
+            test_df = pd.read_csv(test_csv, header=None)[1:].dropna()
+            if len(train_df.columns) != 2:
+                raise ErroneousDatasetException(msg=f"Training split of Dataset '{dataset_version}' for Codebook "
+                                                    "'{cb_name}' is erroneous because it does not contain exactly two"
+                                                    " columns ('text' and 'label')!")
+            test_df.columns = ['text', 'label']
+
             return train_df, test_df
 
     @staticmethod
@@ -143,7 +149,6 @@ class DatasetManager(object):
 
     @staticmethod
     def _is_valid(cb_name: str, dataset_version: str = "default") -> bool:
-        # TODO use feather format
         train_df, test_df = DatasetManager._load_dataframes(cb_name, dataset_version)
         return ("text" and "label" in train_df) and ("text" and "label" in test_df)
 

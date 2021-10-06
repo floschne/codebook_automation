@@ -2,10 +2,12 @@
   <div>
     <div v-if="showAlert">
       <b-alert v-model="success" variant="success">
-        Successfully uploaded {{ model ? 'Model' : 'Dataset' }}!
+        Successfully uploaded {{ model ? 'Model' : 'Dataset' }}! <br>
+        <i> {{ errorMessage }}</i>
       </b-alert>
       <b-alert v-model="error" variant="danger">
-        Couldn't upload {{ model ? 'Model' : 'Dataset' }}!
+        Couldn't upload {{ model ? 'Model' : 'Dataset' }}! <br>
+        <i> {{ errorMessage }}</i>
       </b-alert>
     </div>
 
@@ -32,32 +34,33 @@ import RequestForm from '@/components/RequestForm'
 
 export default {
   name: 'Upload',
-  components: { RequestForm },
+  components: {RequestForm},
   props: {
     model: {
       type: Boolean,
       default: true
     }
   },
-  data () {
+  data() {
     return {
       success: false,
       showAlert: false,
-      metadata: null
+      metadata: null,
+      errorMessage: null,
     }
   },
   computed: {
     error: {
-      get () {
+      get() {
         return !this.success
       },
-      set (err) {
+      set(err) {
         this.success = !err
       }
     }
   },
   methods: {
-    async upload (modelFormData) {
+    async upload(modelFormData) {
       this.reset()
 
       if (this.model === true) {
@@ -66,12 +69,23 @@ export default {
         this.metadata = await this.$datasetApiClient.upload(modelFormData)
       }
 
-      this.success = this.metaData !== null
+      if (this.metadata !== null && this.metadata !== undefined) {
+        if ('message' in this.metadata) {
+          this.success = false
+          this.errorMessage = this.metadata.message
+        } else
+          this.success = true
+      } else {
+        this.success = false
+      }
+
       this.showAlert = true
     },
-    reset () {
+    reset() {
       this.success = false
       this.showAlert = false
+      this.metadata = null
+      this.errorMessage = null
     }
   }
 }

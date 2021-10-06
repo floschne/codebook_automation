@@ -7,7 +7,8 @@ from fastapi import UploadFile
 from loguru import logger as log
 
 from api.model import DatasetMetadata, ModelMetadata
-from backend.exceptions import DatasetNotAvailableException, ModelNotAvailableException, NoDataForCodebookException
+from backend.exceptions import DatasetNotAvailableException, ModelNotAvailableException, NoDataForCodebookException, \
+    ErroneousDatasetException, ModelMetadataNotAvailableException, DatasetMetadataNotAvailableException, StoringError
 from config import conf
 
 
@@ -54,6 +55,9 @@ class DataHandler(object):
             log.info(f"Extracting dataset archive to {str(dst)}")
             archive_path = DataHandler._store_uploaded_file(dataset_archive, dst)
             return DataHandler._extract_archive(archive=archive_path, dst=ds_dir)
+        except Exception as e:
+            raise StoringError(msg=f"Error while storing Dataset '{dataset_version}' for Codebook '{cb_name}'",
+                               caused_by=str(e))
         finally:
             dataset_archive.file.close()
 
@@ -64,14 +68,17 @@ class DataHandler(object):
         with open(dst, 'w') as out:
             log.info(f"Storing dataset metadata at {str(dst)}")
             print(dataset_metadata.json(), file=out)
-        assert dst.exists() and DatasetMetadata.parse_file(dst) == dataset_metadata  # TODO exception
+        if not dst.exists() and DatasetMetadata.parse_file(dst) == dataset_metadata:
+            raise StoringError(f"Error while storing Dataset Metadata for Dataset '{dataset_metadata.version}'"
+                               f"for Codebook '{cb_name}'!")
         return dst
 
     @staticmethod
     def get_dataset_metadata(cb_name: str, dataset_version: str) -> DatasetMetadata:
         model_dir = DataHandler.get_dataset_directory(cb_name, dataset_version=dataset_version)
         path = model_dir.joinpath('metadata.json')
-        assert path.exists()
+        if not path.exists():
+            raise DatasetMetadataNotAvailableException(cb_name=cb_name, dataset_version=dataset_version)
         return DatasetMetadata.parse_file(path)
 
     @staticmethod
@@ -82,6 +89,9 @@ class DataHandler(object):
             log.info(f"Extracting model archive to {str(dst)}")
             archive_path = DataHandler._store_uploaded_file(model_archive, dst)
             return DataHandler._extract_archive(archive=archive_path, dst=model_dir)
+        except Exception as e:
+            raise StoringError(msg=f"Error while storing Model '{model_version}' for Codebook '{cb_name}'",
+                               caused_by=str(e))
         finally:
             model_archive.file.close()
 
@@ -92,14 +102,17 @@ class DataHandler(object):
         with open(dst, 'w') as out:
             log.info(f"Storing model metadata at {str(dst)}")
             print(model_metadata.json(), file=out)
-        assert dst.exists() and ModelMetadata.parse_file(dst) == model_metadata  # TODO exception
+        if not dst.exists() and ModelMetadata.parse_file(dst) == model_metadata:
+            raise StoringError(f"Error while storing Model Metadata for Model '{model_metadata.version}'"
+                               f"for Codebook '{cb_name}'!")
         return dst
 
     @staticmethod
     def get_model_metadata(cb_name: str, model_version: str) -> ModelMetadata:
         model_dir = DataHandler.get_model_directory(cb_name, model_version=model_version)
         path = model_dir.joinpath('metadata.json')
-        assert path.exists()
+        if not path.exists():
+            raise ModelMetadataNotAvailableException(model_version=model_version, cb_name=cb_name)
         return ModelMetadata.parse_file(path)
 
     @staticmethod
@@ -120,7 +133,6 @@ class DataHandler(object):
             data_directory.mkdir(exist_ok=True, parents=True)
         if not data_directory.is_dir():
             raise NoDataForCodebookException(cb_name=cb_name)
-        assert data_directory.is_dir()
         return data_directory
 
     @staticmethod
@@ -128,14 +140,22 @@ class DataHandler(object):
         assert zipfile.is_zipfile(archive)
         with ZipFile(archive, 'r') as zip_archive:
             zip_archive.extractall(dst)
-        assert dst.is_dir()
+        if not dst.is_dir():
+            raise ErroneousDatasetException(msg="Cannot extract dataset zip archive!")
+        if not dst.joinpath('train.csv').exists():
+            raise ErroneousDatasetException(msg="Dataset archive does not contain test.csv file!")
+        if not dst.joinpath('test.csv').exists():
+            raise ErroneousDatasetException(msg="Dataset archive does not contain test.csv file!")
         return dst
 
     @staticmethod
     def _store_uploaded_file(uploaded_file: UploadFile, dst: Path):
-        with open(dst, "wb") as buffer:
-            shutil.copyfileobj(uploaded_file.file, buffer)
-            return Path(dst)
+        try:
+            with open(dst, "wb") as buffer:
+                shutil.copyfileobj(uploaded_file.file, buffer)
+                return Path(dst)
+        except Exception as e:
+            raise StoringError(msg=f"Cannot store uploaded file at {str(dst)}!", caused_by=str(e))
 
     @staticmethod
     def purge_dataset_directory(cb_name: str, dataset_version: str):

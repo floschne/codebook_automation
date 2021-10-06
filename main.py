@@ -8,7 +8,8 @@ from backend import DataHandler, ModelFactory, ModelManager, Predictor, Trainer,
 from backend.exceptions import ModelNotAvailableException, ErroneousMappingException, ErroneousModelException, \
     PredictionError, ModelInitializationException, ErroneousDatasetException, \
     NoDataForCodebookException, DatasetNotAvailableException, InvalidModelIdException, \
-    TagLabelMappingNotAvailableException
+    TagLabelMappingNotAvailableException, ModelMetadataNotAvailableException, DatasetMetadataNotAvailableException, \
+    StoringError, RedisError
 from config import conf
 
 # create the main app
@@ -52,6 +53,24 @@ app.include_router(mapping.router, prefix=mapping.PREFIX)
 
 
 # custom exception handlers
+@app.exception_handler(RedisError)
+async def redis_error_handler(request: Request, exc: RedisError):
+    log.error(exc.message)
+    return JSONResponse(
+        status_code=500,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(StoringError)
+async def storing_error_handler(request: Request, exc: StoringError):
+    log.error(exc.message)
+    return JSONResponse(
+        status_code=500,
+        content={"message": exc.message}
+    )
+
+
 @app.exception_handler(PredictionError)
 async def prediction_error_handler(request: Request, exc: PredictionError):
     log.error(exc.message)
@@ -137,6 +156,26 @@ async def invalid_model_id_exception_exception_handler(request: Request, exc: In
 
 @app.exception_handler(DatasetNotAvailableException)
 async def dataset_not_available_exception_exception_handler(request: Request, exc: DatasetNotAvailableException):
+    log.error(exc.message)
+    return JSONResponse(
+        status_code=404,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(ModelMetadataNotAvailableException)
+async def model_metadata_not_available_exception_exception_handler(request: Request,
+                                                                   exc: ModelMetadataNotAvailableException):
+    log.error(exc.message)
+    return JSONResponse(
+        status_code=404,
+        content={"message": exc.message}
+    )
+
+
+@app.exception_handler(DatasetMetadataNotAvailableException)
+async def dataset_metadata_not_available_exception_exception_handler(request: Request,
+                                                                     exc: DatasetMetadataNotAvailableException):
     log.error(exc.message)
     return JSONResponse(
         status_code=404,
