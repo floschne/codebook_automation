@@ -15,7 +15,7 @@ from backend.exceptions import ErroneousDatasetException, DatasetNotAvailableExc
 class DatasetManager(object):
     _singleton = None
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: object, **kwargs: object):
         if cls._singleton is None:
             log.info('Instantiating DatasetManager!')
             cls._singleton = super(DatasetManager, cls).__new__(cls)
@@ -32,11 +32,8 @@ class DatasetManager(object):
             metadata_path = DataHandler.store_dataset_metadata(cb_name=cb_name, dataset_metadata=metadata)
         except Exception as e:
             raise ErroneousDatasetException(dataset_version, cb_name,
-                                            f"Error while persisting dataset for Codebook {cb_name}!", caused_by=str(e))
-
-        if not DatasetManager._is_valid(cb_name, dataset_version=dataset_version):
-            raise ErroneousDatasetException(dataset_version, cb_name,
-                                            f"Error while persisting dataset for Codebook {cb_name} under {str(path)}")
+                                            f"Error while persisting dataset '{dataset_version}' for Codebook {cb_name}!",
+                                            caused_by=str(e))
 
         RedisHandler().register_dataset(cb_name, metadata)
         log.info(

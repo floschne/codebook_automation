@@ -13,6 +13,7 @@ from loguru import logger as log
 
 from api.model import TrainingResponse, TrainingRequest, TrainingState, TrainingStatus
 from backend import DataHandler, DatasetManager, ModelManager
+from backend.exceptions import ModelNotAvailableException, StoringError
 from backend.training.model_factory import ModelFactory
 from config import conf
 
@@ -189,8 +190,9 @@ def train_eval_export(req: TrainingRequest, status_dict: Dict[str, TrainingStatu
         # publish the model
         ModelManager.publish_model(req, eval_results)
 
-        # TODO exception if fails
-        assert ModelManager.is_available(req.cb_name, req.model_version, complete_check=True)
+        if not ModelManager.is_available(req.cb_name, req.model_version, complete_check=True):
+            raise StoringError()
+
         log.info(f"Successfully exported model <{mid}> at {estimator_path}")
         log.info(f"Completed train-eval-export cycle for model <{mid}>")
         log.info(f"Model <{mid}> stored at {str(dst)}")

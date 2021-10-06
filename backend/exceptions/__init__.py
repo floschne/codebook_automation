@@ -1,7 +1,8 @@
 from backend.exceptions.excepts import ErroneousMappingException, ModelNotAvailableException, \
     ErroneousModelException, PredictionError, ModelInitializationException, ErroneousDatasetException, \
     InvalidModelIdException, DatasetNotAvailableException, NoDataForCodebookException, TFHubEmbeddingException, \
-    TagLabelMappingNotAvailableException
+    TagLabelMappingNotAvailableException, ModelMetadataNotAvailableException, DatasetMetadataNotAvailableException, \
+    StoringError, RedisError
 
 __all__ = [ErroneousModelException,
            ModelNotAvailableException,
@@ -13,4 +14,8 @@ __all__ = [ErroneousModelException,
            ErroneousDatasetException,
            NoDataForCodebookException,
            TFHubEmbeddingException,
-           TagLabelMappingNotAvailableException]
+           TagLabelMappingNotAvailableException,
+           ModelMetadataNotAvailableException,
+           DatasetMetadataNotAvailableException,
+           StoringError,
+           RedisError]
