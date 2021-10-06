@@ -1,7 +1,7 @@
 export default ({
-  app,
-  axios
-}, inject) => {
+                  app,
+                  axios
+                }, inject) => {
   const jsonHeaderConfig = {
     headers: {
       Accept: 'application/json'
@@ -25,7 +25,7 @@ export default ({
         formData.append('dataset_version', modelFormData.version)
         formData.append('dataset_archive', modelFormData.archive, modelFormData.archive.name)
 
-        const resp = await app.$axios.put('/api/dataset/upload/', formData, multipartHeaderConfig)
+        const resp = await app.$axios.put(`${app.$config.ctxPath}api/dataset/upload/`, formData, multipartHeaderConfig)
         metadata = resp.data
       } catch (err) {
         metadata = null
@@ -36,7 +36,7 @@ export default ({
     available: async (cbName, dsVersion) => {
       let datasetAvailable = false
       try {
-        const resp = await app.$axios.get(`/api/dataset/available/?cb_name=${cbName}&dataset_version=${dsVersion}`, jsonHeaderConfig)
+        const resp = await app.$axios.get(`${app.$config.ctxPath}api/dataset/available/?cb_name=${cbName}&dataset_version=${dsVersion}`, jsonHeaderConfig)
         if (resp.status === 200) {
           datasetAvailable = resp.data.value
         } else {
@@ -51,7 +51,7 @@ export default ({
     metadata: async (cbName, dsVersion) => {
       let metadata = null
       try {
-        const resp = await app.$axios.get(`/api/dataset/metadata/?cb_name=${cbName}&dataset_version=${dsVersion}`, jsonHeaderConfig)
+        const resp = await app.$axios.get(`${app.$config.ctxPath}api/dataset/metadata/?cb_name=${cbName}&dataset_version=${dsVersion}`, jsonHeaderConfig)
         if (resp.status === 200) {
           metadata = resp.data
         } else {
@@ -66,7 +66,7 @@ export default ({
     list: async (cbName) => {
       let datasets = []
       try {
-        const resp = await app.$axios.get(`/api/dataset/list/?cb_name=${cbName}`, jsonHeaderConfig)
+        const resp = await app.$axios.get(`${app.$config.ctxPath}api/dataset/list/?cb_name=${cbName}`, jsonHeaderConfig)
         if (resp.status === 200) {
           datasets = resp.data
         } else {
@@ -81,7 +81,7 @@ export default ({
     remove: async (cbName, dsVersion) => {
       let success = false
       try {
-        const resp = await app.$axios.delete(`/api/dataset/remove/?cb_name=${cbName}&dataset_version=${dsVersion}`, jsonHeaderConfig)
+        const resp = await app.$axios.delete(`${app.$config.ctxPath}api/dataset/remove/?cb_name=${cbName}&dataset_version=${dsVersion}`, jsonHeaderConfig)
         if (resp.status === 200) {
           success = resp.data.value
         } else {
