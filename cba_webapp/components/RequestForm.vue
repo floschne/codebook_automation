@@ -30,7 +30,7 @@
         id="label-version"
         label="Version"
         label-for="input-version"
-        description="Version of the model or dataset."
+        :description="model ? 'Version of the Model' : 'Version of the Dataset'"
         label-cols-md="4"
         label-cols-lg="2"
       >
@@ -52,9 +52,9 @@
       <b-form-group
         v-if="showVersionSelect && showVersion"
         id="label-dataset-version"
-        label="Dataset Version"
+        :label="model ? 'Model Version' : 'Dataset Version'"
         label-for="input-dataset-version"
-        description="Version of the model or dataset."
+        :description="model ? 'Version of the Model' : 'Version of the Dataset'"
         label-cols-md="4"
         label-cols-lg="2"
       >
@@ -68,7 +68,7 @@
           <!-- This slot appears above the options from 'options' prop -->
           <template #first>
             <b-form-select-option :value="null" disabled>
-              -- Please set the Name to show the available Datasets --
+              -- Please set the Name to show the available {{ model ? 'Models' : 'Datasets' }} --
             </b-form-select-option>
           </template>
         </b-form-select>
@@ -142,7 +142,7 @@ export default {
       default: true
     }
   },
-  data () {
+  data() {
     return {
       form: {
         version: 'default',
@@ -154,20 +154,20 @@ export default {
     }
   },
   computed: {
-    showVersionInput () {
+    showVersionInput() {
       return !this.showVersionSelect
     },
-    versionInputState () {
+    versionInputState() {
       if (!this.showVersionInput) {
         return true
       } else {
         return this.form.version.search('\\s') < 0 && this.form.version.length >= 1
       }
     },
-    nameInputState () {
+    nameInputState() {
       return this.form.name.search('\\s') < 0 && this.form.name.length >= 1
     },
-    submitButtonText () {
+    submitButtonText() {
       if (this.showDatasetUpload) {
         return 'Upload Dataset'
       } else if (this.showModelUpload) {
@@ -176,19 +176,19 @@ export default {
         return 'Submit'
       }
     },
-    datasetVersions () {
+    datasetVersions() {
       return this.datasetsMetadata.map(md => md.version)
     },
-    modelVersions () {
+    modelVersions() {
       return this.modelsMetadata.map(md => md.version)
     }
   },
   methods: {
-    onSubmit (evt) {
+    onSubmit(evt) {
       evt.preventDefault()
       this.$emit('request-form-submit', this.form)
     },
-    onReset (evt) {
+    onReset(evt) {
       evt.preventDefault()
       // Reset form values
       this.form.version = 'default'
@@ -200,7 +200,7 @@ export default {
       })
       this.$emit('request-form-reset', this.form)
     },
-    async getDatasetsForCodebook () {
+    async getDatasetsForCodebook() {
       if (this.showVersionSelect === false) {
         return []
       } else {
@@ -210,7 +210,7 @@ export default {
         }
       }
     },
-    async getModelsForCodebook () {
+    async getModelsForCodebook() {
       if (this.showVersionSelect === false) {
         return []
       } else {
@@ -220,7 +220,7 @@ export default {
         }
       }
     },
-    async getMetadata () {
+    async getMetadata() {
       if (this.model === true) {
         return await this.getModelsForCodebook()
       } else {
