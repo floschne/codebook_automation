@@ -5,18 +5,20 @@
         Successfully removed {{ model ? 'Model' : 'Dataset' }}!
       </b-alert>
       <b-alert v-model="error" variant="danger">
-        Cannot find {{ model ? 'Model' : 'Dataset' }} Dataset!
+        Cannot find {{ model ? 'Model' : 'Dataset' }} for the given Codebook!
       </b-alert>
     </div>
     <b-row>
-      <RequestForm
-        :model="model"
-        :show-version-select="true"
-        :show-version="true"
-        :show-upload="false"
-        @request-form-submit="remove"
-        @request-form-reset="reset"
-      />
+      <b-col md="12">
+        <RequestForm
+          :model="model"
+          :show-version-select="true"
+          :show-version="true"
+          :show-upload="false"
+          @request-form-submit="remove"
+          @request-form-reset="reset"
+        />
+      </b-col>
     </b-row>
   </div>
 </template>
@@ -26,14 +28,14 @@ import RequestForm from '@/components/RequestForm'
 
 export default {
   name: 'Metadata',
-  components: { RequestForm },
+  components: {RequestForm},
   props: {
     model: {
       type: Boolean,
       default: true
     }
   },
-  data () {
+  data() {
     return {
       success: Boolean(false),
       showAlarm: Boolean(false),
@@ -42,16 +44,16 @@ export default {
   },
   computed: {
     error: {
-      get () {
+      get() {
         return !this.success
       },
-      set (err) {
+      set(err) {
         this.success = !err
       }
     }
   },
   methods: {
-    async remove (reqFromData) {
+    async remove(reqFromData) {
       this.reset()
       if (this.model === true) {
         this.metaData = await this.$modelApiClient.remove(reqFromData.name, reqFromData.version)
@@ -62,7 +64,7 @@ export default {
       this.success = this.metaData !== null && this.metaData !== undefined
       this.showAlarm = true
     },
-    reset () {
+    reset() {
       this.success = false
       this.showAlarm = true
     }
