@@ -8,7 +8,7 @@ PREFIX = "/prediction"
 router = APIRouter()
 
 
-@router.post("/single", response_model=PredictionResult, tags=["prediction"], deprecated=True)
+@router.post("/single", response_model=PredictionResult, tags=["prediction"])
 async def predict(req: PredictionRequest):
     log.info(f"POST request on %s/predict with %s" % (PREFIX, req.json()))
     predictor = Predictor()

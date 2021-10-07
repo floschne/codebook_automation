@@ -1,12 +1,15 @@
 <template>
   <div class="container-fluid">
-    <h1>Hello from {{ $route.fullPath }}</h1>
+    <PredictionForm></PredictionForm>
   </div>
 </template>
 
 <script>
+import PredictionForm from "@/components/PredictionForm";
+
 export default {
-  name: 'Index'
+  name: 'Index',
+  components: {PredictionForm},
 }
 </script>
 
