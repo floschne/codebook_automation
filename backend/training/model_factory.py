@@ -47,9 +47,9 @@ class ModelFactory(object):
     @staticmethod
     def _create_embedding_feature_column(conf: ModelConfig):
         try:
-            embedding_column = hub.text_embedding_column(key="text",
-                                                         module_spec=conf.embedding_type,
-                                                         trainable=False)
+            embedding_column = hub.text_embedding_column_v2(key="text",
+                                                            module_path=hub.resolve(conf.embedding_type),
+                                                            trainable=False)
             return [embedding_column]
         except Exception as e:
             raise TFHubEmbeddingException(embedding_type=conf.embedding_type)
