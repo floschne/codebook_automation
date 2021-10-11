@@ -20,10 +20,12 @@
         <pre class="border border-dark rounded"><code>{{ trainingFormData }}</code></pre>
       </b-col>
     </b-row>
-    <b-row v-if="trainingFormData && datasetAvailable">
-      <b-button variant="warning" block @click="startTraining">
-        Start Training!
-      </b-button>
+    <b-row v-if="trainingFormData && datasetAvailable" class="mt-2">
+      <b-col md="12">
+        <b-button variant="warning" block @click="startTraining">
+          Start Training!
+        </b-button>
+      </b-col>
     </b-row>
   </div>
 </template>
